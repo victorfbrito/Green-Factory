@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.db.models.user import User
 
@@ -10,6 +10,15 @@ class UserRepository:
 
     def get_by_username(self, username: str) -> User | None:
         statement = select(User).where(User.username == username)
+        return self.db.scalar(statement)
+        
+    def get_user_with_languages(self, username: str) -> User | None:
+        statement = (
+            select(User)
+            .options(joinedload(User.languages))
+            .where(User.username == username)
+        )
+
         return self.db.scalar(statement)
 
     def save(self, user: User) -> User:

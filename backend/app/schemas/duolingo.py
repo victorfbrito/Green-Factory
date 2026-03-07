@@ -1,6 +1,18 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DuolingoCourse(BaseModel):
+    id: str
+    title: str | None = None
+
+    learningLanguage: str
+    fromLanguage: str | None = None
+
+    xp: int | None = None
+    crowns: int | None = None
+
+    model_config = ConfigDict(extra="ignore")
+
 class DuolingoUserResponse(BaseModel):
     id: int | None = None
     username: str
@@ -10,8 +22,7 @@ class DuolingoUserResponse(BaseModel):
     streak: int | None = None
     total_xp: int | None = Field(default=None, alias="totalXp")
 
-    learning_language: str | None = None
-    from_language: str | None = None
+    courses: list[DuolingoCourse] | None = None
 
     model_config = ConfigDict(
         populate_by_name=True,
