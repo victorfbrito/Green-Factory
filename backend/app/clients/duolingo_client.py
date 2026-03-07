@@ -13,16 +13,12 @@ class DuolingoClient:
         url = f"{self.base_url}/users"
 
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(
-                url,
-                params={"username": username},
-            )
+            response = await client.get(url, params={"username": username})
             response.raise_for_status()
+            payload = response.json()
 
-        data = response.json()
+        users = payload.get("users", [])
+        if not users:
+            raise ValueError(f"User '{username}' not found")
 
-        if not data.get("users"):
-            raise ValueError(f"User '{username}' not found in Duolingo response")
-
-        user_data = data["users"][0]
-        return DuolingoUserResponse.model_validate(user_data)
+        return DuolingoUserResponse.model_validate(users[0])

@@ -17,7 +17,9 @@ class User(Base):
     streak: Mapped[int] = mapped_column(Integer, default=0)
     streak_extended_today: Mapped[bool] = mapped_column(Boolean, default=False)
     total_xp: Mapped[int] = mapped_column(Integer, default=0)
-    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -17,9 +17,9 @@ class UserService:
     async def refresh_user(self, username: str) -> UserResponse:
         duolingo_user = await self.duolingo_client.fetch_user_profile(username)
 
-        existing_user = self.user_repository.get_by_username(username)
+        user = self.user_repository.get_by_username(username)
 
-        if existing_user is None:
+        if user is None:
             user = User(
                 username=duolingo_user.username,
                 display_name=duolingo_user.name,
@@ -31,7 +31,6 @@ class UserService:
                 last_synced_at=datetime.now(UTC),
             )
         else:
-            user = existing_user
             user.display_name = duolingo_user.name
             user.avatar_url = duolingo_user.picture
             user.streak = duolingo_user.streak or 0
@@ -39,5 +38,4 @@ class UserService:
             user.last_synced_at = datetime.now(UTC)
 
         saved_user = self.user_repository.save(user)
-
-        return UserResponse.model_validate(saved_user, from_attributes=True)
+        return UserResponse.model_validate(saved_user)

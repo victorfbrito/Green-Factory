@@ -12,12 +12,14 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("", response_model=list[UserResponse])
 def list_users(db: Session = Depends(get_db)) -> list[User]:
-    users = db.scalars(select(User)).all()
-    return list(users)
+    return list(db.scalars(select(User)).all())
 
 
 @router.post("/{username}/refresh", response_model=UserResponse)
-async def refresh_user(username: str, db: Session = Depends(get_db)) -> UserResponse:
+async def refresh_user(
+    username: str,
+    db: Session = Depends(get_db),
+) -> UserResponse:
     service = UserService(db)
 
     try:

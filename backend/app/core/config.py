@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     debug: bool = True
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/duofactory"
-
     duolingo_base_url: str = "https://www.duolingo.com/2017-06-30"
 
     model_config = SettingsConfigDict(

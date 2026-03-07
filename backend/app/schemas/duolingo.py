@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DuolingoUserResponse(BaseModel):
@@ -6,15 +6,14 @@ class DuolingoUserResponse(BaseModel):
     username: str
     name: str | None = None
     picture: str | None = None
-    profile_country: str | None = None
-    has_plus: bool | None = None
 
     streak: int | None = None
-    longest_streak: int | None = None
     total_xp: int | None = Field(default=None, alias="totalXp")
 
-    from_language: str | None = None
     learning_language: str | None = None
+    from_language: str | None = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="ignore",
+    )
