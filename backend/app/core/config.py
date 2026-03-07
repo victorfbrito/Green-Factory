@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/duofactory"
 
+    duolingo_base_url: str = "https://www.duolingo.com/2017-06-30"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
