@@ -21,15 +21,6 @@ class Language(Base):
     xp: Mapped[int] = mapped_column(Integer, default=0)
     crowns: Mapped[int] = mapped_column(Integer, default=0)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
-
     user = relationship("User", back_populates="languages")
+
+    skills = relationship("Skill", back_populates="language")
