@@ -18,8 +18,12 @@ class UserRepository:
             .options(joinedload(User.languages))
             .where(User.username == username)
         )
-
         return self.db.scalar(statement)
+
+    def get_all_users_with_languages(self) -> list[User]:
+        """Fetch all users with languages eager-loaded (for leaderboard)."""
+        statement = select(User).options(joinedload(User.languages)).order_by(User.username)
+        return list(self.db.scalars(statement).unique().all())
 
     def save(self, user: User) -> User:
         self.db.add(user)

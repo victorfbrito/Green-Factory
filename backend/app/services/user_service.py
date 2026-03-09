@@ -13,9 +13,16 @@ from app.schemas.user import (
     FactoryResponse,
     FactoryUserResponse,
     LanguageResponse,
+    TopFactoriesResponse,
+    TopFactoryItemResponse,
     UserRefreshResponse,
     _streak_to_band,
     _xp_to_sector_tier,
+    build_upgrade_details,
+    compute_environment_state,
+    compute_factory_derived,
+    compute_sustainability_score,
+    compute_unlocked_upgrades,
 )
 
 
@@ -103,6 +110,13 @@ class UserService:
         # Sort by XP descending for consistent render order; sort_order 0 = highest XP
         sorted_languages = sorted(user.languages, key=lambda l: l.xp, reverse=True)
         primary_language_code = sorted_languages[0].language_code if sorted_languages else None
+        sustainability_score = compute_sustainability_score(
+            user.streak,
+            user.total_xp,
+            dominant_language_xp_share,
+        )
+        environment_level, environment_label = compute_environment_state(sustainability_score)
+        unlocked_upgrades_list = compute_unlocked_upgrades(user.streak)
         lang_list = [
             FactoryLanguageResponse(
                 course_id=lang.duolingo_course_id,
@@ -131,9 +145,51 @@ class UserService:
                 primary_language_code=primary_language_code,
                 active_streak_band=_streak_to_band(user.streak),
                 dominant_language_xp_share=dominant_language_xp_share,
+                sustainability_score=sustainability_score,
+                environment_level=environment_level,
+                environment_label=environment_label,
+                unlocked_upgrades=unlocked_upgrades_list,
+                upgrade_details=build_upgrade_details(unlocked_upgrades_list),
             ),
             languages=lang_list,
         )
+
+    def get_top_factories(
+        self,
+        limit: int = 20,
+        sort: str = "total_xp",
+    ) -> TopFactoriesResponse:
+        """Leaderboard of factories from DB only. No Duolingo calls."""
+        users = self.user_repository.get_all_users_with_languages()
+        items: list[TopFactoryItemResponse] = []
+        for user in users:
+            derived = compute_factory_derived(user.streak, user.total_xp, user.languages)
+            items.append(
+                TopFactoryItemResponse(
+                    username=user.username,
+                    display_name=user.display_name,
+                    avatar_url=user.avatar_url,
+                    total_xp=user.total_xp,
+                    streak=user.streak,
+                    current_course_id=user.current_course_id,
+                    total_languages=derived.total_languages,
+                    primary_language_code=derived.primary_language_code,
+                    dominant_language_xp_share=derived.dominant_language_xp_share,
+                    sustainability_score=derived.sustainability_score,
+                    environment_level=derived.environment_level,
+                    environment_label=derived.environment_label,
+                )
+            )
+        # Sort key: primary metric desc, then total_xp desc, then username asc
+        _SORT_KEYS = {
+            "total_xp": lambda i: (-i.total_xp, i.username),
+            "streak": lambda i: (-i.streak, -i.total_xp, i.username),
+            "sustainability": lambda i: (-i.sustainability_score, -i.total_xp, i.username),
+            "languages": lambda i: (-i.total_languages, -i.total_xp, i.username),
+        }
+        key_fn = _SORT_KEYS.get(sort) or _SORT_KEYS["total_xp"]
+        items.sort(key=key_fn)
+        return TopFactoriesResponse(items=items[:limit])
 
     def _to_refresh_response(self, user: User) -> UserRefreshResponse:
         return UserRefreshResponse(
