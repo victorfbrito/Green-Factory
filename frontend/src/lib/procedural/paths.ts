@@ -81,6 +81,104 @@ function findNearestWalkable(grid: NavGrid, startCx: number, startCy: number, ma
   return null
 }
 
+/** Set of cell keys covered by the given blocks (same mapping as buildNavGrid). */
+function getDistrictBuildingCells(blocks: WorldBlock[]): Set<string> {
+  const out = new Set<string>()
+  for (const b of blocks) {
+    const x0 = b.x
+    const y0 = b.y
+    const x1 = b.x + b.w
+    const y1 = b.y + b.h
+    const cxStart = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(x0 / CELL_SIZE)))
+    const cxEnd = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((x1 - 0.001) / CELL_SIZE)))
+    const cyStart = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(y0 / CELL_SIZE)))
+    const cyEnd = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((y1 - 0.001) / CELL_SIZE)))
+    for (let cx = cxStart; cx <= cxEnd; cx++) {
+      for (let cy = cyStart; cy <= cyEnd; cy++) {
+        out.add(cellKey(cx, cy))
+      }
+    }
+  }
+  return out
+}
+
+/** Walkable cells that are adjacent to at least one cell of this district's buildings (perimeter / front-door candidates). */
+function getCandidateEntranceCells(
+  grid: NavGrid,
+  districtBuildingCells: Set<string>
+): PathCell[] {
+  const candidates: PathCell[] = []
+  const seen = new Set<string>()
+  for (const key of districtBuildingCells) {
+    const [cx, cy] = key.split(',').map(Number)
+    for (const [dx, dy] of DIRS) {
+      const nx = cx + dx
+      const ny = cy + dy
+      if (nx < 0 || nx >= grid.width || ny < 0 || ny >= grid.height) continue
+      if (districtBuildingCells.has(cellKey(nx, ny))) continue
+      if (!isWalkable(grid, nx, ny)) continue
+      const nk = cellKey(nx, ny)
+      if (seen.has(nk)) continue
+      seen.add(nk)
+      candidates.push({ cx: nx, cy: ny })
+    }
+  }
+  return candidates
+}
+
+/** Count walkable cardinal neighbors. */
+function countWalkableNeighbors(grid: NavGrid, cx: number, cy: number): number {
+  let n = 0
+  for (const [dx, dy] of DIRS) {
+    if (isWalkable(grid, cx + dx, cy + dy)) n++
+  }
+  return n
+}
+
+/**
+ * Choose the best entrance cell for a district: perimeter candidate with highest score.
+ * Score: closer to hub (better), aligned with direction anchor→hub (better), more open (better), deterministic tie-break.
+ */
+function selectDistrictEntrance(
+  grid: NavGrid,
+  districtIndex: number,
+  blocks: WorldBlock[],
+  anchorCx: number,
+  anchorCy: number,
+  hubCell: PathCell,
+  seedKey: string
+): PathCell | null {
+  const districtBuildingCells = getDistrictBuildingCells(blocks)
+  const candidates = getCandidateEntranceCells(grid, districtBuildingCells)
+  if (candidates.length === 0) return null
+
+  const hx = hubCell.cx
+  const hy = hubCell.cy
+  const dx = hx - anchorCx
+  const dy = hy - anchorCy
+  const hubDirLen = Math.sqrt(dx * dx + dy * dy) || 1
+
+  let best: PathCell | null = null
+  let bestScore = -Infinity
+
+  for (const c of candidates) {
+    const toHub = manhattan(c.cx, c.cy, hx, hy)
+    const ax = c.cx - anchorCx
+    const ay = c.cy - anchorCy
+    const align = hubDirLen > 0 ? (ax * dx + ay * dy) / (hubDirLen * (Math.sqrt(ax * ax + ay * ay) || 1)) : 0
+    const openness = countWalkableNeighbors(grid, c.cx, c.cy) / 4
+    const tie = seededUnit(hashSeed(seedKey + ':entrance:' + districtIndex + ':' + cellKey(c.cx, c.cy)))
+
+    const score = -0.05 * toHub + 0.4 * align + 0.2 * openness + tie * 1e-3
+    if (score > bestScore) {
+      bestScore = score
+      best = c
+    }
+  }
+
+  return best
+}
+
 function manhattan(ax: number, ay: number, bx: number, by: number): number {
   return Math.abs(ax - bx) + Math.abs(ay - by)
 }
@@ -176,8 +274,15 @@ export function buildCampusPaths(districts: DistrictPlacement[], blockLists: Wor
   for (let i = 0; i < districts.length; i++) {
     const d = districts[i]
     const [acx, acy] = worldToCell(d.x, d.y)
-    const entry = findNearestWalkable(grid, acx, acy)
+    const blocks = blockLists[i] ?? []
+    const entry =
+      selectDistrictEntrance(grid, i, blocks, acx, acy, hubCell, d.language.seed_key) ??
+      findNearestWalkable(grid, acx, acy)
     if (!entry) continue
+    // Debug: uncomment to log chosen entrance per district
+    // if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    //   console.log('[paths] district', i, d.language.language_name, 'entrance', entry.cx, entry.cy)
+    // }
     const path = findPathAStar(grid, roadCells, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
     if (path && path.length > 1) {
       paths.push(path)
