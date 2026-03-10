@@ -1,3 +1,4 @@
+import { harmonizeBuildingCells } from './harmonize'
 import {
   createSeededNoise,
   getParcelFillDecision,
@@ -301,7 +302,9 @@ function fillTerritoryWithMotifs(
     }
   }
 
-  return cellsToBlocks(buildingCells, territory, seedKey, isPrimary)
+  // Post-process: merge fragments into orthogonal compounds, reduce noise, preserve intentional gaps (deterministic).
+  const harmonizedCells = harmonizeBuildingCells(buildingCells, territory, seedKey)
+  return cellsToBlocks(harmonizedCells, territory, seedKey, isPrimary)
 }
 
 /** Convert building cells to world blocks (1x1, 2x1, 2x2). Reserve one 2x2 as landmark in larger districts. */

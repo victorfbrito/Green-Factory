@@ -33,7 +33,7 @@
 
 .world-regenerative {
   --world-bg: linear-gradient(160deg, #1e3d2a 0%, #162d1e 50%, #0f2216 100%);
-  --world-ground: #1a3624;
+  --world-ground: #58cc02;
   --world-water: #142a1c;
   --world-accent: #3db85c;
   --world-mood: rgba(0, 0, 0, 0.02);

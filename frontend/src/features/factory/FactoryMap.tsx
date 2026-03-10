@@ -1,8 +1,7 @@
 import type { FactorySceneModel } from '../../lib/procedural'
 import { WorldLayer } from './WorldLayer'
-import { PathLayer } from './PathLayer'
 import { DistrictLayer } from './DistrictLayer'
-import { UpgradeLayer } from './UpgradeLayer'
+import { ThreeWorldLayer } from './ThreeWorldLayer'
 
 interface FactoryMapProps {
   scene: FactorySceneModel
@@ -15,13 +14,12 @@ export function FactoryMap({ scene, selectedDistrictIndex, onSelectDistrict }: F
   return (
     <div className="factory-map">
       <WorldLayer theme={worldTheme} />
-      <PathLayer districts={districts} />
+      <ThreeWorldLayer districts={districts} />
       <DistrictLayer
         districts={districts}
         selectedIndex={selectedDistrictIndex}
         onSelect={onSelectDistrict}
       />
-      <UpgradeLayer upgrades={upgrades} />
     </div>
   )
 }

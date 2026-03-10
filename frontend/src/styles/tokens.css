@@ -2,7 +2,6 @@
 :root {
   --map-size: 840px;
   --district-stroke: 2px;
-  --district-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   --flow-stroke: 6px;
   --upgrade-size: 24px;
   --sidebar-width: 280px;

@@ -29,6 +29,7 @@ export {
   type DistrictBuildResult,
   type MotifId,
 } from './worldGrid'
+export { harmonizeBuildingCells } from './harmonize'
 export {
   buildCampusPaths,
   type CampusPaths,

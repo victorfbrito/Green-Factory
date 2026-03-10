@@ -13,6 +13,39 @@
   background: var(--world-bg);
 }
 
+.factory-map__three-wrapper {
+  position: absolute;
+  inset: 0;
+}
+
+.factory-map__three {
+  position: absolute;
+  inset: 0;
+}
+
+.factory-map__debug {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+.factory-map__debug label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.factory-map__debug input[type="checkbox"] {
+  cursor: pointer;
+}
+
 .factory-map__svg {
   position: absolute;
   inset: 0;

@@ -58,26 +58,7 @@ export function DistrictLayer({ districts, selectedIndex, onSelect }: DistrictLa
               onClick={() => onSelect(i)}
               onKeyDown={(e) => e.key === 'Enter' && onSelect(i)}
             />
-            {/* Block cluster on shared world grid */}
-            {blocks.map((block, bi) => (
-              <div
-                key={bi}
-                className={`factory-map__district-block ${block.isLandmark ? 'factory-map__district-block--landmark' : ''}`}
-                style={{
-                  position: 'absolute',
-                  left: block.x,
-                  top: block.y,
-                  width: block.w,
-                  height: block.h,
-                  background: baseColor,
-                  filter: `brightness(${block.shade})`,
-                  boxShadow: 'var(--district-shadow)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  pointerEvents: 'none',
-                  zIndex: 1,
-                }}
-              />
-            ))}
+            {/* Block visuals are now rendered in the Three.js isometric scene (ThreeWorldLayer). */}
           </div>
         )
       })}
