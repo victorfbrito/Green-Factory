@@ -1,0 +1,97 @@
+{
+    "user": {
+      "username": "virtofb",
+      "display_name": "Victor Brito",
+      "streak": 625,
+      "total_xp": 74683,
+      "current_course_id": "DUOLINGO_FR_EN"
+    },
+    "factory_meta": {
+      "total_languages": 2,
+      "primary_language_code": "fr",
+      "active_streak_band": "mythic",
+      "dominant_language_xp_share": 0.96,
+      "sustainability_score": 85,
+      "environment_level": 4,
+      "environment_label": "regenerative",
+      "unlocked_upgrades": [
+        "solar_panels",
+        "water_recycling",
+        "wind_turbines",
+        "green_roofs",
+        "electric_transport",
+        "urban_trees",
+        "carbon_capture"
+      ],
+      "upgrade_details": [
+        {
+          "id": "solar_panels",
+          "title": "Solar Panels",
+          "short_description": "Generate clean electricity on-site.",
+          "educational_note": "Many factories use rooftop solar to reduce dependence on fossil fuels."
+        },
+        {
+          "id": "water_recycling",
+          "title": "Water Recycling",
+          "short_description": "Reuse industrial water more efficiently.",
+          "educational_note": "Water recycling systems help reduce freshwater waste in industrial processes."
+        },
+        {
+          "id": "wind_turbines",
+          "title": "Wind Turbines",
+          "short_description": "Add renewable power to the factory grid.",
+          "educational_note": "Wind power helps industries lower carbon emissions while supplying electricity."
+        },
+        {
+          "id": "green_roofs",
+          "title": "Green Roofs",
+          "short_description": "Cool buildings and support urban biodiversity.",
+          "educational_note": "Green roofs can reduce heat buildup and create habitat for pollinators and plants."
+        },
+        {
+          "id": "electric_transport",
+          "title": "Electric Transport",
+          "short_description": "Clean up factory logistics.",
+          "educational_note": "Electric vehicles reduce local air pollution and lower fossil fuel use in transport."
+        },
+        {
+          "id": "urban_trees",
+          "title": "Urban Trees",
+          "short_description": "Add green buffers around the factory.",
+          "educational_note": "Tree belts help absorb carbon, improve air quality, and reduce heat around industrial zones."
+        },
+        {
+          "id": "carbon_capture",
+          "title": "Carbon Capture",
+          "short_description": "Reduce industrial CO₂ emissions.",
+          "educational_note": "Carbon capture systems trap part of the CO₂ before it reaches the atmosphere."
+        }
+      ]
+    },
+    "languages": [
+      {
+        "course_id": "DUOLINGO_FR_EN",
+        "language_code": "fr",
+        "language_name": "French",
+        "xp": 71656,
+        "crowns": 9999,
+        "is_current": true,
+        "xp_share": 0.96,
+        "sector_tier": 5,
+        "sort_order": 0,
+        "seed_key": "virtofb:DUOLINGO_FR_EN"
+      },
+      {
+        "course_id": "DUOLINGO_DE_EN",
+        "language_code": "de",
+        "language_name": "German",
+        "xp": 3027,
+        "crowns": 9999,
+        "is_current": false,
+        "xp_share": 0.04,
+        "sector_tier": 3,
+        "sort_order": 1,
+        "seed_key": "virtofb:DUOLINGO_DE_EN"
+      }
+    ]
+  }

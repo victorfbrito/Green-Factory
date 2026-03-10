@@ -40,16 +40,17 @@ class UserService:
         return self._to_refresh_response(user)
 
     async def refresh_user(self, username: str) -> UserRefreshResponse:
-        user = self.user_repository.get_by_username(username)
+        # Case-insensitive lookup so /users/izaricheto/refresh finds existing IzaRicheto
+        user = self.user_repository.get_by_username_insensitive(username)
         if user is not None and user.last_synced_at is not None:
             now = datetime.now(UTC)
             if (now - user.last_synced_at) < timedelta(minutes=5):
-                user_with_langs = self.user_repository.get_user_with_languages(username)
+                user_with_langs = self.user_repository.get_user_with_languages(user.username)
                 if user_with_langs is not None:
                     return self._to_refresh_response(user_with_langs)
 
         duolingo_user = await self.duolingo_client.fetch_user_by_username(username)
-        user = self.user_repository.get_by_username(username)
+        user = self.user_repository.get_by_username_insensitive(username)
 
         if user is None:
             user = User(

@@ -1,0 +1,47 @@
+{
+    "id": 3,
+    "username": "IzaRicheto",
+    "display_name": "Izabelle Richeto",
+    "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/1334932660/SSR-XPcEM7Asyf",
+    "timezone": null,
+    "streak": 0,
+    "streak_extended_today": false,
+    "total_xp": 32233,
+    "current_course_id": "DUOLINGO_JA_PT",
+    "last_synced_at": "2026-03-09T21:55:20.790214Z",
+    "languages": [
+      {
+        "id": 18,
+        "duolingo_course_id": "DUOLINGO_JA_PT",
+        "language_code": "ja",
+        "language_name": "Japanese",
+        "xp": 5886,
+        "crowns": 9999
+      },
+      {
+        "id": 19,
+        "duolingo_course_id": "DUOLINGO_IT_PT",
+        "language_code": "it",
+        "language_name": "Italian",
+        "xp": 26347,
+        "crowns": 9999
+      },
+      {
+        "id": 20,
+        "duolingo_course_id": "DUOLINGO_EN_PT",
+        "language_code": "en",
+        "language_name": "English",
+        "xp": 0,
+        "crowns": 9999
+      },
+      {
+        "id": 21,
+        "duolingo_course_id": "DUOLINGO_FR_PT",
+        "language_code": "fr",
+        "language_name": "French",
+        "xp": 0,
+        "crowns": 9999
+      }
+    ]
+  }
+  
