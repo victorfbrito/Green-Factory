@@ -10,11 +10,17 @@ export interface CampusPaths {
   paths: PathCell[][]
 }
 
+/** Only building (and other obstacle) cells. Roads are NOT blocked and remain traversable. */
 interface NavGrid {
   width: number
   height: number
   blocked: Set<string>
 }
+
+/** Cost for stepping onto an empty cell. */
+const EMPTY_COST = 1
+/** Cost for stepping onto an existing road cell; lower so paths prefer reusing roads. */
+const ROAD_COST = 0.4
 
 const DIRS: [number, number][] = [
   [0, -1], // N
@@ -75,8 +81,13 @@ function findNearestWalkable(grid: NavGrid, startCx: number, startCy: number, ma
   return null
 }
 
-function heuristic(ax: number, ay: number, bx: number, by: number): number {
+function manhattan(ax: number, ay: number, bx: number, by: number): number {
   return Math.abs(ax - bx) + Math.abs(ay - by)
+}
+
+/** Admissible heuristic: Manhattan distance × minimum step cost (ROAD_COST). */
+function heuristic(ax: number, ay: number, bx: number, by: number): number {
+  return manhattan(ax, ay, bx, by) * ROAD_COST
 }
 
 function reconstructPath(cameFrom: Map<string, string>, endKey: string): PathCell[] {
@@ -95,7 +106,13 @@ function reconstructPath(cameFrom: Map<string, string>, endKey: string): PathCel
   return out
 }
 
-function findPathAStar(grid: NavGrid, start: PathCell, goal: PathCell, seedKeyForTies: string): PathCell[] | null {
+function findPathAStar(
+  grid: NavGrid,
+  roadCells: Set<string>,
+  start: PathCell,
+  goal: PathCell,
+  seedKeyForTies: string
+): PathCell[] | null {
   const startK = cellKey(start.cx, start.cy)
   const goalK = cellKey(goal.cx, goal.cy)
   if (startK === goalK) return [start]
@@ -129,7 +146,8 @@ function findPathAStar(grid: NavGrid, start: PathCell, goal: PathCell, seedKeyFo
       const ny = cy + dy
       if (!isWalkable(grid, nx, ny)) continue
       const nk = cellKey(nx, ny)
-      const tentativeG = currentG + 1
+      const stepCost = roadCells.has(nk) ? ROAD_COST : EMPTY_COST
+      const tentativeG = currentG + stepCost
       if (tentativeG >= (gScore.get(nk) ?? Infinity)) continue
       cameFrom.set(nk, current)
       gScore.set(nk, tentativeG)
@@ -152,17 +170,19 @@ export function buildCampusPaths(districts: DistrictPlacement[], blockLists: Wor
 
   const paths: PathCell[][] = []
   const seedKeyForTies = districts[0]?.language.seed_key ?? 'paths'
+  /** Cells that already have a road; traversable and preferred (lower cost). Never added to grid.blocked. */
+  const roadCells = new Set<string>()
 
   for (let i = 0; i < districts.length; i++) {
     const d = districts[i]
     const [acx, acy] = worldToCell(d.x, d.y)
     const entry = findNearestWalkable(grid, acx, acy)
     if (!entry) continue
-    const path = findPathAStar(grid, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
+    const path = findPathAStar(grid, roadCells, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
     if (path && path.length > 1) {
       paths.push(path)
       for (const { cx, cy } of path) {
-        grid.blocked.add(cellKey(cx, cy))
+        roadCells.add(cellKey(cx, cy))
       }
     }
   }
