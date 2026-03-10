@@ -1,0 +1,89 @@
+/* Factory map container and layers */
+.factory-map {
+  position: relative;
+  width: var(--map-size);
+  height: var(--map-size);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.factory-map__world {
+  position: absolute;
+  inset: 0;
+  background: var(--world-bg);
+}
+
+.factory-map__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.factory-map__svg path,
+.factory-map__svg line {
+  pointer-events: none;
+}
+
+.factory-map__districts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.factory-map__district {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.factory-map__district:hover {
+  filter: brightness(1.08);
+}
+
+.factory-map__district--current {
+  filter: brightness(1.1);
+  box-shadow: 0 0 0 3px var(--world-accent);
+}
+
+.factory-map__district--selected {
+  box-shadow: 0 0 0 3px var(--world-accent);
+}
+
+.factory-map__upgrades {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.factory-sidebar {
+  width: var(--sidebar-width);
+  padding: 1rem;
+  background: var(--world-ground);
+  color: #e0e8ec;
+  font-size: 0.9rem;
+}
+
+.factory-sidebar h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.factory-sidebar p {
+  margin: 0 0 0.75rem 0;
+  opacity: 0.9;
+}
+
+.factory-sidebar__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+.factory-sidebar__badge {
+  padding: 0.2rem 0.5rem;
+  background: var(--world-accent);
+  font-size: 0.8rem;
+}

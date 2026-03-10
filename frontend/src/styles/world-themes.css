@@ -1,0 +1,40 @@
+/* World themes by environment_level / environment_label */
+.world-industrial {
+  --world-bg: linear-gradient(160deg, #3d4a52 0%, #2a3238 50%, #1e2428 100%);
+  --world-ground: #37424a;
+  --world-water: #2c3640;
+  --world-accent: #6b7c8a;
+  --world-mood: rgba(0, 0, 0, 0.25);
+}
+
+.world-improving {
+  --world-bg: linear-gradient(160deg, #4a5c5a 0%, #354340 50%, #26302e 100%);
+  --world-ground: #3d504d;
+  --world-water: #324540;
+  --world-accent: #6b8a85;
+  --world-mood: rgba(0, 0, 0, 0.15);
+}
+
+.world-sustainable {
+  --world-bg: linear-gradient(160deg, #3d5648 0%, #2d4236 50%, #223329 100%);
+  --world-ground: #355040;
+  --world-water: #2a4538;
+  --world-accent: #5a8a6e;
+  --world-mood: rgba(0, 0, 0, 0.08);
+}
+
+.world-advanced_green {
+  --world-bg: linear-gradient(160deg, #2d4a38 0%, #223826 50%, #1a2e20 100%);
+  --world-ground: #264032;
+  --world-water: #1e3628;
+  --world-accent: #4a9c64;
+  --world-mood: rgba(0, 0, 0, 0.04);
+}
+
+.world-regenerative {
+  --world-bg: linear-gradient(160deg, #1e3d2a 0%, #162d1e 50%, #0f2216 100%);
+  --world-ground: #1a3624;
+  --world-water: #142a1c;
+  --world-accent: #3db85c;
+  --world-mood: rgba(0, 0, 0, 0.02);
+}
