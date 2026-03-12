@@ -1,50 +1,23 @@
 /**
- * Building harmonization pass: post-process generated building cells into cleaner
- * orthogonal factory compounds while preserving district identity and approximate mass.
- *
- * Rules:
- * - Merge adjacent 1x1 into 2x1/1x2/2x2 where possible; complete 2x2 from L-shaped 3-cells.
- * - Prefer straight edges: remove some isolated singles (courtyards) and diagonal protrusions.
- * - Fill internal holes (3+ building neighbors) with seed-based probability to form mass or leave as courtyard.
- * - Cap adds/removes to preserve district mass approximately.
- *
- * Determinism: same seedKey + territory + input cells => same output. All tie-breaking uses seedKey.
+ * Harmonize building cells into cleaner orthogonal compounds.
+ * Preserves district mass approximately. Rectangular only.
  */
 
-import { hashSeed, seededUnit } from './seed'
+import { hashSeed, seededUnit } from '../seed'
+import { cellKey } from '../grid'
 
-const CARDINAL = [
-  [-1, 0],
-  [1, 0],
-  [0, -1],
-  [0, 1],
-] as const
-
-function key(cx: number, cy: number): string {
-  return `${cx},${cy}`
-}
+const CARDINAL = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const
 
 function parseKey(k: string): [number, number] {
   const [cx, cy] = k.split(',').map(Number)
   return [cx, cy]
 }
 
-/** Deterministic [0,1) for a given string. */
 function rand(seedKey: string, suffix: string): number {
-  let h = 5381
-  const s = seedKey + suffix
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i)
-  return seededUnit(h >>> 0)
+  return seededUnit(hashSeed(seedKey + suffix) >>> 0)
 }
 
-/**
- * Get connected components of building cells (cardinal adjacency only).
- * Returns array of components, each component as array of cell keys. Sorted by size desc, then by min key for tie-break.
- */
-function getConnectedComponents(
-  buildingSet: Set<string>,
-  seedKey: string
-): string[][] {
+function getConnectedComponents(buildingSet: Set<string>, seedKey: string): string[][] {
   const visited = new Set<string>()
   const components: string[][] = []
 
@@ -58,7 +31,7 @@ function getConnectedComponents(
       comp.push(cur)
       const [cx, cy] = parseKey(cur)
       for (const [dx, dy] of CARDINAL) {
-        const nk = key(cx + dx, cy + dy)
+        const nk = cellKey(cx + dx, cy + dy)
         if (buildingSet.has(nk) && !visited.has(nk)) {
           visited.add(nk)
           stack.push(nk)
@@ -78,38 +51,35 @@ function getConnectedComponents(
   return components
 }
 
+function countBuildingNeighbors(cx: number, cy: number, buildingSet: Set<string>): number {
+  let n = 0
+  for (const [dx, dy] of CARDINAL) {
+    if (buildingSet.has(cellKey(cx + dx, cy + dy))) n++
+  }
+  return n
+}
+
 /**
  * Harmonize building cells into cleaner orthogonal compounds.
- * - Preserves district mass approximately (caps on adds/removes).
- * - Keeps intentional empty space (some isolated cells become courtyards).
- * - Completes 2x2 and extends 2x1 where territory allows; fills internal holes sparingly.
- * - Reduces diagonal protrusions (remove tail cells or complete L to 2x2).
+ * Deterministic: same seedKey + territory + input => same output.
  */
-export function harmonizeBuildingCells(
+export function harmonizeCompoundCells(
   buildingCells: [number, number][],
   territory: [number, number][],
   seedKey: string
 ): [number, number][] {
-  const territorySet = new Set(territory.map(([cx, cy]) => key(cx, cy)))
-  const buildingSet = new Set(buildingCells.map(([cx, cy]) => key(cx, cy)))
+  const territorySet = new Set(territory.map(([cx, cy]) => cellKey(cx, cy)))
+  const buildingSet = new Set(buildingCells.map(([cx, cy]) => cellKey(cx, cy)))
 
   const addCell = (cx: number, cy: number): boolean => {
-    const k = key(cx, cy)
+    const k = cellKey(cx, cy)
     if (!territorySet.has(k) || buildingSet.has(k)) return false
     buildingSet.add(k)
     return true
   }
 
   const removeCell = (cx: number, cy: number): void => {
-    buildingSet.delete(key(cx, cy))
-  }
-
-  const countBuildingNeighbors = (cx: number, cy: number): number => {
-    let n = 0
-    for (const [dx, dy] of CARDINAL) {
-      if (buildingSet.has(key(cx + dx, cy + dy))) n++
-    }
-    return n
+    buildingSet.delete(cellKey(cx, cy))
   }
 
   const maxRemove = Math.max(0, Math.floor(buildingCells.length * 0.12))
@@ -117,7 +87,6 @@ export function harmonizeBuildingCells(
   let removed = 0
   let added = 0
 
-  // --- 1) Remove some isolated singles (courtyards). Deterministic by seed per cell. ---
   const components = getConnectedComponents(buildingSet, seedKey + ':iso')
   for (const comp of components) {
     if (comp.length !== 1 || removed >= maxRemove) continue
@@ -128,14 +97,13 @@ export function harmonizeBuildingCells(
     }
   }
 
-  // --- 2) Complete 2x2 from L-shaped triplets (three cells of a 2x2 filled). Prefer straight blocks. ---
   const twoByTwoTops = new Set<string>()
   for (const k of Array.from(buildingSet)) {
     const [cx, cy] = parseKey(k)
     for (const [ox, oy] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) {
       const tx = cx + ox
       const ty = cy + oy
-      const corners = [key(tx, ty), key(tx + 1, ty), key(tx, ty + 1), key(tx + 1, ty + 1)]
+      const corners = [cellKey(tx, ty), cellKey(tx + 1, ty), cellKey(tx, ty + 1), cellKey(tx + 1, ty + 1)]
       const filled = corners.filter((c) => buildingSet.has(c))
       if (filled.length !== 3) continue
       const empty = corners.find((c) => !buildingSet.has(c))!
@@ -151,18 +119,17 @@ export function harmonizeBuildingCells(
     }
   }
 
-  // --- 3) Extend 2x1 into 2x2 where two adjacent cells have two empty territory neighbors forming 2x2. ---
   for (const k of Array.from(buildingSet)) {
     if (added >= maxAdd) break
     const [cx, cy] = parseKey(k)
     for (const [dx, dy] of CARDINAL) {
       const nx = cx + dx
       const ny = cy + dy
-      if (!buildingSet.has(key(nx, ny))) continue
+      if (!buildingSet.has(cellKey(nx, ny))) continue
       const [ax, ay] = dx !== 0 ? [cx, cy + 1] : [cx + 1, cy]
       const [bx, by] = dx !== 0 ? [nx, ny + 1] : [nx + 1, ny]
-      if (!territorySet.has(key(ax, ay)) || !territorySet.has(key(bx, by))) continue
-      if (buildingSet.has(key(ax, ay)) || buildingSet.has(key(bx, by))) continue
+      if (!territorySet.has(cellKey(ax, ay)) || !territorySet.has(cellKey(bx, by))) continue
+      if (buildingSet.has(cellKey(ax, ay)) || buildingSet.has(cellKey(bx, by))) continue
       const topLeftX = Math.min(cx, nx, ax, bx)
       const topLeftY = Math.min(cy, ny, ay, by)
       if (twoByTwoTops.has(topLeftX + ',' + topLeftY)) continue
@@ -177,12 +144,11 @@ export function harmonizeBuildingCells(
     }
   }
 
-  // --- 4) Fill internal holes: territory cell with 3+ building neighbors. Sparingly. ---
   const holeCandidates: string[] = []
   for (const k of territorySet) {
     if (buildingSet.has(k)) continue
     const [cx, cy] = parseKey(k)
-    if (countBuildingNeighbors(cx, cy) >= 3) holeCandidates.push(k)
+    if (countBuildingNeighbors(cx, cy, buildingSet) >= 3) holeCandidates.push(k)
   }
   holeCandidates.sort()
   for (const k of holeCandidates) {
@@ -194,15 +160,13 @@ export function harmonizeBuildingCells(
     }
   }
 
-  // --- 5) Reduce diagonal protrusions: remove tail cells (exactly one neighbor that has other neighbors). ---
   const tails: string[] = []
   for (const k of buildingSet) {
     const [cx, cy] = parseKey(k)
-    const neighbors = CARDINAL.map(([dx, dy]) => key(cx + dx, cy + dy)).filter((nk) => buildingSet.has(nk))
+    const neighbors = CARDINAL.map(([dx, dy]) => cellKey(cx + dx, cy + dy)).filter((nk) => buildingSet.has(nk))
     if (neighbors.length !== 1) continue
     const [nx, ny] = parseKey(neighbors[0])
-    const neighborCount = countBuildingNeighbors(nx, ny)
-    if (neighborCount >= 2) tails.push(k)
+    if (countBuildingNeighbors(nx, ny, buildingSet) >= 2) tails.push(k)
   }
   tails.sort()
   for (const k of tails) {

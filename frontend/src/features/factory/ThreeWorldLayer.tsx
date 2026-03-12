@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
-import type { DistrictPlacement, DistrictBuildResult, WorldBlock } from '../../lib/procedural'
-import { buildAllDistrictBlocks, buildCampusPaths, CELL_SIZE, MAP_SIZE } from '../../lib/procedural'
+import type { DistrictPlacement, Block, PathCell } from '../../lib/procedural'
+import { CELL_SIZE, MAP_SIZE } from '../../lib/procedural'
 import { BLOCK_COLORS, PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
 
 // True isometric camera direction.
@@ -12,13 +12,12 @@ export const CAMERA_Z = 900
 
 interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
+  blockLists: Block[][]
+  paths: PathCell[][]
+  serviceLaneCells: PathCell[]
 }
 
-function buildSceneBlocks(districts: DistrictPlacement[]): DistrictBuildResult {
-  return buildAllDistrictBlocks(districts)
-}
-
-export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
+export function ThreeWorldLayer({ districts, blockLists, paths, serviceLaneCells }: ThreeWorldLayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [topDownView, setTopDownView] = useState(true)
 
@@ -94,14 +93,12 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
     axesHelper.position.set(-half + axesSize, 8, -half + axesSize)
     scene.add(axesHelper)
 
-    const { blockLists } = buildSceneBlocks(districts)
-
     const baseColors = BLOCK_COLORS.map((c) => new THREE.Color(c))
 
     const heightScale = 16
     const centerOffset = MAP_SIZE / 2
 
-    const addBlock = (block: WorldBlock, districtIndex: number) => {
+    const addBlock = (block: Block, districtIndex: number) => {
       const blockHeight = block.isLandmark ? heightScale * 1.8 : heightScale
 
       const geometry = new THREE.BoxGeometry(block.w, blockHeight, block.h)
@@ -129,8 +126,7 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
       blocks.forEach((block) => addBlock(block, i))
     })
 
-    // Paths between districts: flat tiles on the ground at each path cell.
-    const { paths, serviceLaneCells } = buildCampusPaths(districts, blockLists)
+    // Path layer: flat tiles on the ground at each path cell.
     const pathHeight = 0.8
     const pathGeometry = new THREE.BoxGeometry(CELL_SIZE * 0.5, pathHeight, CELL_SIZE * 0.5)
     const pathMaterial = new THREE.MeshStandardMaterial({
@@ -273,7 +269,7 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
         container.removeChild(renderer.domElement)
       }
     }
-  }, [districts, topDownView])
+  }, [districts, blockLists, paths, serviceLaneCells, topDownView])
 
   return (
     <div className="factory-map__three-wrapper">

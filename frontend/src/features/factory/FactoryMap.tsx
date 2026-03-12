@@ -1,19 +1,24 @@
-import type { FactorySceneModel } from '../../lib/procedural'
+import type { FactoryRenderModel } from '../../lib/procedural'
 import { WorldLayer } from './WorldLayer'
 import { DistrictLayer } from './DistrictLayer'
 import { ThreeWorldLayer } from './ThreeWorldLayer'
 import { MapLegend } from './MapLegend'
 
 interface FactoryMapProps {
-  scene: FactorySceneModel
+  renderModel: FactoryRenderModel
 }
 
-export function FactoryMap({ scene }: FactoryMapProps) {
-  const { worldTheme, districts } = scene
+export function FactoryMap({ renderModel }: FactoryMapProps) {
+  const { worldTheme, districts, blockLists, paths, serviceLaneCells } = renderModel
   return (
     <div className="factory-map">
       <WorldLayer theme={worldTheme} />
-      <ThreeWorldLayer districts={districts} />
+      <ThreeWorldLayer
+        districts={districts}
+        blockLists={blockLists}
+        paths={paths}
+        serviceLaneCells={serviceLaneCells}
+      />
       <DistrictLayer districts={districts} />
       <MapLegend districts={districts} />
     </div>

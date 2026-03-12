@@ -1,28 +1,10 @@
 import type { DistrictPlacement } from '../../lib/procedural'
-import { buildAllDistrictBlocks } from '../../lib/procedural'
 
 interface DistrictLayerProps {
   districts: DistrictPlacement[]
 }
 
 export function DistrictLayer({ districts }: DistrictLayerProps) {
-  const { blockLists } = buildAllDistrictBlocks(districts)
-
-  // Debug: how many blocks per language are being rendered
-  if (typeof window !== 'undefined') {
-    console.log(
-      '[DistrictLayer] blocks per district',
-      districts.map((d, i) => ({
-        index: i,
-        language: d.language.language_name,
-        course_id: d.language.course_id,
-        xp: d.language.xp,
-        seed_key: d.language.seed_key,
-        blocks: blockLists[i]?.length ?? 0,
-      }))
-    )
-  }
-
   return (
     <div className="factory-map__districts">
       {districts.map((d) => {

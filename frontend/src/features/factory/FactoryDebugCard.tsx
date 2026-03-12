@@ -1,11 +1,11 @@
 import type { FactoryResponse } from '../../types'
-import type { FactorySceneModel } from '../../lib/procedural'
+import type { FactoryRenderModel } from '../../lib/procedural'
 import { getTerritoryBudget } from '../../lib/procedural'
 import { DISTRICT_COLORS } from './constants'
 
 interface FactoryDebugCardProps {
   factory: FactoryResponse
-  scene: FactorySceneModel
+  renderModel: FactoryRenderModel
 }
 
 const themeVarNames: Record<string, string> = {
@@ -16,9 +16,9 @@ const themeVarNames: Record<string, string> = {
   regenerative: 'Deep green, clean',
 }
 
-export function FactoryDebugCard({ factory, scene }: FactoryDebugCardProps) {
+export function FactoryDebugCard({ factory, renderModel }: FactoryDebugCardProps) {
   const { user, factory_meta, languages } = factory
-  const { worldTheme, mapSize, districts } = scene
+  const { worldTheme, mapSize, districts } = renderModel
 
   return (
     <section
@@ -109,7 +109,7 @@ export function FactoryDebugCard({ factory, scene }: FactoryDebugCardProps) {
           <strong style={{ opacity: 0.9 }}>Scene summary</strong>
           <ul style={{ margin: '0.25rem 0 0 0', paddingLeft: '1.25rem' }}>
             <li>shared world grid: 60×60 cells · districts: {districts.length}</li>
-            <li>each district: territory on grid → filled with multiple motifs (courtyard, staggered_row, paired_blocks, etc.) · 1x1 / 2x1 / 2x2 blocks</li>
+            <li>each district: territory on grid → compound layout (rectangles) → blocks · paths and service lanes are post-process</li>
           </ul>
         </div>
       </div>
