@@ -205,7 +205,7 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
       if (isTopDown) {
         // Camera looking straight down: pan in world XZ. Drag direction matches view movement.
         target.x -= deltaX * scaleX
-        target.z += deltaY * scaleY
+        target.z -= deltaY * scaleY
       } else {
         const up = new THREE.Vector3(0, 1, 0)
         const right = new THREE.Vector3().crossVectors(up, viewDir)

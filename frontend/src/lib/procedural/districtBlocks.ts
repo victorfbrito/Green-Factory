@@ -42,13 +42,13 @@ export function getBlockCount(tier: number, xpShare: number, seedKey: string): n
   return minCount + offset
 }
 
-export type DistrictPattern = 'courtyard' | 'staggered_grid' | 'l_shape'
+export type DistrictPattern = 'courtyard' | 'staggered_grid'
 
 /** Deterministic pattern selection from seed_key. */
 export function getPatternFromSeed(seedKey: string): DistrictPattern {
   const h = hashSeed(seedKey + ':pattern')
-  const patterns: DistrictPattern[] = ['courtyard', 'staggered_grid', 'l_shape']
-  return patterns[h % 3]
+  const patterns: DistrictPattern[] = ['courtyard', 'staggered_grid']
+  return patterns[h % 2]
 }
 
 /** All cells in grid order (row then col). */
@@ -83,24 +83,12 @@ function layoutStaggeredGrid(blockCount: number, _seedKey: string): GridCell[] {
   return candidates.slice(0, blockCount)
 }
 
-/** L-shape: one row + one column from center. Build L deterministically, take first n. */
-function layoutLShape(blockCount: number, _seedKey: string): GridCell[] {
-  const cells: GridCell[] = []
-  const extent = GRID_HALF
-  for (let c = -extent; c <= extent; c++) cells.push({ row: 0, col: c })
-  for (let r = 1; r <= extent; r++) cells.push({ row: r, col: 0 })
-  for (let r = -1; r >= -extent; r--) cells.push({ row: r, col: 0 })
-  return cells.slice(0, blockCount)
-}
-
 function getLayout(pattern: DistrictPattern, blockCount: number, seedKey: string): GridCell[] {
   switch (pattern) {
     case 'courtyard':
       return layoutCourtyard(blockCount, seedKey)
     case 'staggered_grid':
       return layoutStaggeredGrid(blockCount, seedKey)
-    case 'l_shape':
-      return layoutLShape(blockCount, seedKey)
     default:
       return layoutCourtyard(blockCount, seedKey)
   }

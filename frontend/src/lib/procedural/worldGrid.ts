@@ -204,26 +204,26 @@ export function growTerritory(
   return out
 }
 
-// --- Motifs: relative cell offsets from origin (0,0). Origin is included. ---
+// --- Motifs: relative cell offsets from origin (0,0). Origin is included. Rectangular only. ---
 export type MotifId =
-  | 'courtyard_cluster'
-  | 'staggered_row'
   | 'paired_blocks'
-  | 'utility_corner'
+  | 'row_3'
+  | 'col_2'
   | 'service_strip'
+  | 'block_2x2'
   | 'landmark_pad'
 
 /** [dc, dr] relative to origin (0,0). */
 const MOTIFS: Record<MotifId, [number, number][]> = {
-  courtyard_cluster: [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]],
-  staggered_row: [[0, 0], [1, 0], [2, 1]],
   paired_blocks: [[0, 0], [1, 0]],
-  utility_corner: [[0, 0], [1, 0], [0, 1]],
+  row_3: [[0, 0], [1, 0], [2, 0]],
+  col_2: [[0, 0], [0, 1]],
   service_strip: [[0, 0], [0, 1], [0, 2]],
+  block_2x2: [[0, 0], [1, 0], [0, 1], [1, 1]],
   landmark_pad: [[0, 0], [1, 0], [0, 1], [1, 1]],
 }
 
-const MOTIF_IDS: MotifId[] = ['courtyard_cluster', 'staggered_row', 'paired_blocks', 'utility_corner', 'service_strip', 'landmark_pad']
+const MOTIF_IDS: MotifId[] = ['paired_blocks', 'row_3', 'col_2', 'service_strip', 'block_2x2', 'landmark_pad']
 
 function getMotifAt(seedKey: string, index: number): MotifId {
   const h = hashSeed(seedKey + ':m' + index)
