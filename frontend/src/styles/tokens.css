@@ -1,6 +1,6 @@
 /* Design tokens for factory map */
 :root {
-  --map-size: 840px;
+  --map-size: 420px;
   --district-stroke: 2px;
   --flow-stroke: 6px;
   --upgrade-size: 24px;

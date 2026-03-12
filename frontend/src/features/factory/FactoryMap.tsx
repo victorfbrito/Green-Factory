@@ -5,21 +5,15 @@ import { ThreeWorldLayer } from './ThreeWorldLayer'
 
 interface FactoryMapProps {
   scene: FactorySceneModel
-  selectedDistrictIndex: number | null
-  onSelectDistrict: (index: number) => void
 }
 
-export function FactoryMap({ scene, selectedDistrictIndex, onSelectDistrict }: FactoryMapProps) {
-  const { worldTheme, districts, upgrades } = scene
+export function FactoryMap({ scene }: FactoryMapProps) {
+  const { worldTheme, districts } = scene
   return (
     <div className="factory-map">
       <WorldLayer theme={worldTheme} />
       <ThreeWorldLayer districts={districts} />
-      <DistrictLayer
-        districts={districts}
-        selectedIndex={selectedDistrictIndex}
-        onSelect={onSelectDistrict}
-      />
+      <DistrictLayer districts={districts} />
     </div>
   )
 }

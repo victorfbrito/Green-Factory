@@ -12,8 +12,6 @@ export function FactoryPage() {
   const [factory, setFactory] = useState<FactoryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedDistrictIndex, setSelectedDistrictIndex] = useState<number | null>(null)
-
   useEffect(() => {
     if (!username) {
       setLoading(false)
@@ -23,10 +21,7 @@ export function FactoryPage() {
     setLoading(true)
     setError(null)
     openFactory(username)
-      .then((data) => {
-        setFactory(data)
-        setSelectedDistrictIndex(null)
-      })
+      .then((data) => setFactory(data))
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false))
   }, [username])
@@ -48,10 +43,6 @@ export function FactoryPage() {
   }
 
   const scene = buildFactoryScene(factory)
-  const selectedDistrict =
-    selectedDistrictIndex != null && scene.districts[selectedDistrictIndex]
-      ? scene.districts[selectedDistrictIndex].language
-      : null
 
   return (
     <div
@@ -64,12 +55,8 @@ export function FactoryPage() {
       }}
     >
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <FactoryMap
-          scene={scene}
-          selectedDistrictIndex={selectedDistrictIndex}
-          onSelectDistrict={setSelectedDistrictIndex}
-        />
-        <FactorySidebar factory={factory} selectedDistrict={selectedDistrict} />
+        <FactoryMap scene={scene} />
+        <FactorySidebar factory={factory} />
       </div>
       <FactoryDebugCard factory={factory} scene={scene} />
     </div>

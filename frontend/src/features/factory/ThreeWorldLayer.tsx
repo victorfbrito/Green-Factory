@@ -200,17 +200,24 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
       const scaleY = frustumSize / (camera.zoom * height)
 
       const viewDir = new THREE.Vector3().subVectors(target, camera.position).normalize()
-      const up = new THREE.Vector3(0, 1, 0)
-      const right = new THREE.Vector3().crossVectors(up, viewDir)
-      right.y = 0
-      right.normalize()
-      const forward = new THREE.Vector3().crossVectors(right, viewDir)
-      forward.y = 0
-      forward.normalize()
+      const isTopDown = viewDir.y < -0.99
 
-      // Drag direction should match scene movement: dragging right moves view right, dragging up moves view up.
-      target.addScaledVector(right, deltaX * scaleX)
-      target.addScaledVector(forward, -deltaY * scaleY)
+      if (isTopDown) {
+        // Camera looking straight down: pan in world XZ. Drag direction matches view movement.
+        target.x -= deltaX * scaleX
+        target.z += deltaY * scaleY
+      } else {
+        const up = new THREE.Vector3(0, 1, 0)
+        const right = new THREE.Vector3().crossVectors(up, viewDir)
+        right.y = 0
+        right.normalize()
+        const forward = new THREE.Vector3().crossVectors(right, viewDir)
+        forward.y = 0
+        forward.normalize()
+        // Drag direction should match scene movement: dragging right moves view right, dragging up moves view up.
+        target.addScaledVector(right, deltaX * scaleX)
+        target.addScaledVector(forward, -deltaY * scaleY)
+      }
       applyCameraFromTarget()
       render()
     }

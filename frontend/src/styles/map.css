@@ -16,6 +16,11 @@
 .factory-map__three-wrapper {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+}
+
+.factory-map__three-wrapper .factory-map__three {
+  pointer-events: auto;
 }
 
 .factory-map__three {
@@ -66,21 +71,12 @@
 }
 
 .factory-map__district {
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
   transition: filter 0.15s ease, transform 0.15s ease;
-}
-
-.factory-map__district:hover {
-  filter: brightness(1.08);
 }
 
 .factory-map__district--current {
   filter: brightness(1.1);
-  box-shadow: 0 0 0 3px var(--world-accent);
-}
-
-.factory-map__district--selected {
   box-shadow: 0 0 0 3px var(--world-accent);
 }
 
