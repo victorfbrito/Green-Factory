@@ -204,26 +204,26 @@ export function growTerritory(
   return out
 }
 
-// --- Motifs: relative cell offsets from origin (0,0). Origin is included. Rectangular only. ---
+// --- Motifs: relative cell offsets from origin (0,0). Rectangular only: 2x1, 2x2, 3x1, 3x2, 3x3. ---
 export type MotifId =
-  | 'paired_blocks'
-  | 'row_3'
-  | 'col_2'
-  | 'service_strip'
-  | 'block_2x2'
+  | 'rect_2x1'
+  | 'rect_2x2'
+  | 'rect_3x1'
+  | 'rect_3x2'
+  | 'rect_3x3'
   | 'landmark_pad'
 
 /** [dc, dr] relative to origin (0,0). */
 const MOTIFS: Record<MotifId, [number, number][]> = {
-  paired_blocks: [[0, 0], [1, 0]],
-  row_3: [[0, 0], [1, 0], [2, 0]],
-  col_2: [[0, 0], [0, 1]],
-  service_strip: [[0, 0], [0, 1], [0, 2]],
-  block_2x2: [[0, 0], [1, 0], [0, 1], [1, 1]],
+  rect_2x1: [[0, 0], [1, 0]],
+  rect_2x2: [[0, 0], [1, 0], [0, 1], [1, 1]],
+  rect_3x1: [[0, 0], [1, 0], [2, 0]],
+  rect_3x2: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
+  rect_3x3: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
   landmark_pad: [[0, 0], [1, 0], [0, 1], [1, 1]],
 }
 
-const MOTIF_IDS: MotifId[] = ['paired_blocks', 'row_3', 'col_2', 'service_strip', 'block_2x2', 'landmark_pad']
+const MOTIF_IDS: MotifId[] = ['rect_2x1', 'rect_2x2', 'rect_3x1', 'rect_3x2', 'rect_3x3', 'landmark_pad']
 
 function getMotifAt(seedKey: string, index: number): MotifId {
   const h = hashSeed(seedKey + ':m' + index)
@@ -307,7 +307,7 @@ function fillTerritoryWithMotifs(
   return cellsToBlocks(harmonizedCells, territory, seedKey, isPrimary)
 }
 
-/** Convert building cells to world blocks (1x1, 2x1, 2x2). Reserve one 2x2 as landmark in larger districts. */
+/** Convert building cells to world blocks. Rectangles only: 2x1, 2x2, 3x1, 3x2, 3x3. Reserve one 2x2 as landmark in larger districts. */
 function cellsToBlocks(
   cells: [number, number][],
   territory: [number, number][],
@@ -322,78 +322,74 @@ function cellsToBlocks(
   const landmarkThreshold = territory.length >= 25 ? 1 : 0
   let landmarkPlaced = false
 
-  const try2x2 = (cx: number, cy: number): boolean => {
-    for (let dx = 0; dx <= 1; dx++)
-      for (let dy = 0; dy <= 1; dy++)
+  const tryRect = (w: number, h: number) => (cx: number, cy: number): boolean => {
+    for (let dx = 0; dx < w; dx++)
+      for (let dy = 0; dy < h; dy++)
         if (!cellSet.has(cellKey(cx + dx, cy + dy))) return false
-    for (let dx = 0; dx <= 1; dx++)
-      for (let dy = 0; dy <= 1; dy++)
+    for (let dx = 0; dx < w; dx++)
+      for (let dy = 0; dy < h; dy++)
         used.add(cellKey(cx + dx, cy + dy))
-    return true
-  }
-
-  const try2x1 = (cx: number, cy: number, horizontal: boolean): boolean => {
-    const c2 = horizontal ? [cx + 1, cy] : [cx, cy + 1]
-    if (!cellSet.has(cellKey(c2[0], c2[1]))) return false
-    if (used.has(cellKey(cx, cy)) || used.has(cellKey(c2[0], c2[1]))) return false
-    used.add(cellKey(cx, cy))
-    used.add(cellKey(c2[0], c2[1]))
     return true
   }
 
   const topLeft = (cx: number, cy: number) => [cx * CELL_SIZE + gap / 2, cy * CELL_SIZE + gap / 2]
   const cellW = CELL_SIZE - gap
+  const rectW = (n: number) => CELL_SIZE * n - gap
 
   for (const [cx, cy] of cells) {
     if (used.has(cellKey(cx, cy))) continue
     if (landmarkThreshold && !landmarkPlaced && (isPrimary || territory.length >= 40)) {
-      if (try2x2(cx, cy)) {
+      if (tryRect(2, 2)(cx, cy)) {
         const [x, y] = topLeft(cx, cy)
-        blocks.push({
-          x,
-          y,
-          w: CELL_SIZE * 2 - gap,
-          h: CELL_SIZE * 2 - gap,
-          shade: 0.95,
-          isLandmark: true,
-        })
+        blocks.push({ x, y, w: rectW(2), h: rectW(2), shade: 0.95, isLandmark: true })
         landmarkPlaced = true
         continue
       }
     }
-    if (seededUnit(hashSeed(seedKey + ':' + cx + ',' + cy)) > 0.5) {
-      if (try2x1(cx, cy, true)) {
-        const [x, y] = topLeft(cx, cy)
-        blocks.push({
-          x,
-          y,
-          w: CELL_SIZE * 2 - gap,
-          h: cellW,
-          shade: 0.9 + seededUnit(hashSeed(seedKey + 'b' + cx)) * 0.12,
-        })
-        continue
-      }
-      if (try2x1(cx, cy, false)) {
-        const [x, y] = topLeft(cx, cy)
-        blocks.push({
-          x,
-          y,
-          w: cellW,
-          h: CELL_SIZE * 2 - gap,
-          shade: 0.9 + seededUnit(hashSeed(seedKey + 'b' + cy)) * 0.12,
-        })
-        continue
-      }
+    const r = seededUnit(hashSeed(seedKey + ':' + cx + ',' + cy))
+    if (tryRect(3, 3)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(3), h: rectW(3), shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(3, 2)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(3), h: rectW(2), shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(2, 3)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(2), h: rectW(3), shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(2, 2)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(2), h: rectW(2), shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(3, 1)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(3), h: cellW, shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(1, 3)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: cellW, h: rectW(3), shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(2, 1)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: rectW(2), h: cellW, shade: 0.9 + r * 0.12 })
+      continue
+    }
+    if (tryRect(1, 2)(cx, cy)) {
+      const [x, y] = topLeft(cx, cy)
+      blocks.push({ x, y, w: cellW, h: rectW(2), shade: 0.9 + r * 0.12 })
+      continue
     }
     used.add(cellKey(cx, cy))
     const [x, y] = topLeft(cx, cy)
-    blocks.push({
-      x,
-      y,
-      w: cellW,
-      h: cellW,
-      shade: 0.88 + seededUnit(hashSeed(seedKey + 's' + cx + cy)) * 0.18,
-    })
+    blocks.push({ x, y, w: cellW, h: cellW, shade: 0.88 + r * 0.18 })
   }
   return blocks
 }

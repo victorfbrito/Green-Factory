@@ -28,6 +28,38 @@
   inset: 0;
 }
 
+.factory-map__legend {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #e5e7eb;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.factory-map__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.factory-map__legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.factory-map__legend-label {
+  white-space: nowrap;
+}
+
 .factory-map__debug {
   position: absolute;
   top: 0.5rem;

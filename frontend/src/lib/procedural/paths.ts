@@ -8,6 +8,8 @@ export interface PathCell {
 
 export interface CampusPaths {
   paths: PathCell[][]
+  /** Service lane cells: short 1-cell-wide lane from each district entrance into the district (empty cells only). */
+  serviceLaneCells: PathCell[]
 }
 
 /** Only building (and other obstacle) cells. Roads are NOT blocked and remain traversable. */
@@ -264,12 +266,15 @@ export function buildCampusPaths(districts: DistrictPlacement[], blockLists: Wor
   const hubWorld = MAP_SIZE / 2
   const [hubCx, hubCy] = worldToCell(hubWorld, hubWorld)
   const hubCell = findNearestWalkable(grid, hubCx, hubCy)
-  if (!hubCell) return { paths: [] }
+  if (!hubCell) return { paths: [], serviceLaneCells: [] }
 
   const paths: PathCell[][] = []
+  const serviceLaneCells: PathCell[] = []
   const seedKeyForTies = districts[0]?.language.seed_key ?? 'paths'
   /** Cells that already have a road; traversable and preferred (lower cost). Never added to grid.blocked. */
   const roadCells = new Set<string>()
+
+  const MAX_SERVICE_LANE_STEPS = 4
 
   for (let i = 0; i < districts.length; i++) {
     const d = districts[i]
@@ -279,19 +284,33 @@ export function buildCampusPaths(districts: DistrictPlacement[], blockLists: Wor
       selectDistrictEntrance(grid, i, blocks, acx, acy, hubCell, d.language.seed_key) ??
       findNearestWalkable(grid, acx, acy)
     if (!entry) continue
-    // Debug: uncomment to log chosen entrance per district
-    // if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    //   console.log('[paths] district', i, d.language.language_name, 'entrance', entry.cx, entry.cy)
-    // }
     const path = findPathAStar(grid, roadCells, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
     if (path && path.length > 1) {
       paths.push(path)
       for (const { cx, cy } of path) {
         roadCells.add(cellKey(cx, cy))
       }
+      // Service lane: from entrance toward anchor, up to MAX_SERVICE_LANE_STEPS on empty cells
+      let cx = entry.cx
+      let cy = entry.cy
+      for (let s = 0; s < MAX_SERVICE_LANE_STEPS; s++) {
+        const dx = acx - cx
+        const dy = acy - cy
+        if (dx === 0 && dy === 0) break
+        const ax = Math.abs(dx)
+        const ay = Math.abs(dy)
+        const nx = ax >= ay ? cx + Math.sign(dx) : cx
+        const ny = ax >= ay ? cy : cy + Math.sign(dy)
+        if (nx === cx && ny === cy) break
+        const nk = cellKey(nx, ny)
+        if (!isWalkable(grid, nx, ny) || roadCells.has(nk)) break
+        cx = nx
+        cy = ny
+        serviceLaneCells.push({ cx, cy })
+      }
     }
   }
 
-  return { paths }
+  return { paths, serviceLaneCells }
 }
 

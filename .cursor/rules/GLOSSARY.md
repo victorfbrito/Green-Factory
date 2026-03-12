@@ -4,7 +4,7 @@ Layout
 * District – One language zone (e.g. French, German). Has an anchor (x, y) and a radius; no direct shape on the canvas.
 * Territory – The set of cells belonging to a district. Grown from the anchor (orthogonal/parcel, noise-biased). Defines where that district can build.
 Buildings
-* Compound – One placed cluster of cells: a rectangle only (1×1, 2×1, 1×2, 3×1, 1×3, 2×2, etc.). Minimum size is 2 when possible; single-cell is rare.
+* Compound – One placed cluster of cells: a rectangle only (2×1, 2×2, 3×1, 3×2, 3×3). Minimum size is 2 when possible; single-cell is rare.
 * Block – The thing drawn for a compound: one rectangle in world coords. Compounds and blocks are 1:1 (one compound → one block).
 * Compound outline – Red border drawn only along the boundary of each compound (not per cell). One outline per compound.
 Roads

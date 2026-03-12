@@ -3,6 +3,7 @@ import * as THREE from 'three'
 
 import type { DistrictPlacement, DistrictBuildResult, WorldBlock } from '../../lib/procedural'
 import { buildAllDistrictBlocks, buildCampusPaths, CELL_SIZE, MAP_SIZE } from '../../lib/procedural'
+import { BLOCK_COLORS, PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
 
 // True isometric camera direction.
 export const CAMERA_X = 900
@@ -95,14 +96,7 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
 
     const { blockLists } = buildSceneBlocks(districts)
 
-    const baseColors = [
-      new THREE.Color('#4f6bed'),
-      new THREE.Color('#00b894'),
-      new THREE.Color('#f39c12'),
-      new THREE.Color('#9b59b6'),
-      new THREE.Color('#e74c3c'),
-      new THREE.Color('#16a085'),
-    ]
+    const baseColors = BLOCK_COLORS.map((c) => new THREE.Color(c))
 
     const heightScale = 16
     const centerOffset = MAP_SIZE / 2
@@ -136,11 +130,11 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
     })
 
     // Paths between districts: flat tiles on the ground at each path cell.
-    const { paths } = buildCampusPaths(districts, blockLists)
+    const { paths, serviceLaneCells } = buildCampusPaths(districts, blockLists)
     const pathHeight = 0.8
     const pathGeometry = new THREE.BoxGeometry(CELL_SIZE * 0.5, pathHeight, CELL_SIZE * 0.5)
     const pathMaterial = new THREE.MeshStandardMaterial({
-      color: 0x6b7280,
+      color: new THREE.Color(PATH_COLOR),
       roughness: 0.9,
       metalness: 0.05,
     })
@@ -152,6 +146,19 @@ export function ThreeWorldLayer({ districts }: ThreeWorldLayerProps) {
         pathMesh.position.set(worldX, pathHeight / 2 + 0.05, worldZ)
         scene.add(pathMesh)
       }
+    }
+    // Service lanes: bright red tiles
+    const serviceLaneMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(SERVICE_LANE_COLOR),
+      roughness: 0.9,
+      metalness: 0.05,
+    })
+    for (const cell of serviceLaneCells) {
+      const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+      const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+      const laneMesh = new THREE.Mesh(pathGeometry, serviceLaneMaterial)
+      laneMesh.position.set(worldX, pathHeight / 2 + 0.06, worldZ)
+      scene.add(laneMesh)
     }
 
     const render = () => renderer.render(scene, camera)
