@@ -57,7 +57,7 @@ export function packCompoundsInBlock(
   isPrimary: boolean
 ): Compound[] {
   const available = getFootprintCells(footprint)
-  const capacity = Math.min(4, Math.max(1, Math.floor(available.size / 3)))
+  const capacity = Math.max(1, Math.floor(available.size / 3))
   const maxCompounds = Math.min(targetCount, capacity)
   const compounds: Compound[] = []
 

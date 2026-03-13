@@ -25,13 +25,26 @@ export interface BlockPlacementResult {
   territoryCells: [number, number][]
 }
 
-const BLOCK_SIZES: [number, number][] = [[3, 3], [3, 2], [2, 3], [2, 2], [3, 1], [1, 3], [2, 1], [1, 2]]
+const BLOCK_SIZES: [number, number][] = [
+  [3, 5], [3, 4], [3, 3], [3, 2], [3, 1],
+  [5, 3], [4, 3], [2, 3], [1, 3],
+  [2, 2], [2, 1], [1, 2], [1, 1],
+]
 
 /** Minimum footprint dimensions to hold n compounds (~4 cells each). */
 function getFootprintSizesForCompoundCount(n: number): [number, number][] {
   const minArea = Math.max(n, 3 * n)
   const valid = BLOCK_SIZES.filter(([w, h]) => w * h >= minArea)
   return valid.length > 0 ? valid : BLOCK_SIZES
+}
+
+/** Shuffle sizes by seed so horizontal/vertical varies per block. */
+function shuffleSizesBySeed(sizes: [number, number][], seedKey: string, blockIndex: number): [number, number][] {
+  return [...sizes].sort((a, b) => {
+    const tieA = seededUnit(hashSeed(seedKey + ':size:' + blockIndex + ':' + a[0] + 'x' + a[1]))
+    const tieB = seededUnit(hashSeed(seedKey + ':size:' + blockIndex + ':' + b[0] + 'x' + b[1]))
+    return tieA - tieB
+  })
 }
 
 function getFootprintCells(fp: BlockFootprint): string[] {
@@ -162,7 +175,7 @@ export function placeBlocks(
 
   // 1. Place primary block near anchor (sized for blockSizes[0] compounds)
   const primarySizes = getFootprintSizesForCompoundCount(blockSizes[0])
-  const sizes0 = primarySizes.length > 0 ? primarySizes : BLOCK_SIZES
+  const sizes0 = shuffleSizesBySeed(primarySizes.length > 0 ? primarySizes : BLOCK_SIZES, seedKey, 0)
   let placed = false
   for (const [cx, cy] of candidatesSorted) {
     if (placed) break
@@ -184,7 +197,7 @@ export function placeBlocks(
   // 2. Place additional blocks, each connected via 1-cell lane (sized for blockSizes[b] compounds)
   for (let b = 1; b < numBlocks; b++) {
     const blockSizesForB = getFootprintSizesForCompoundCount(blockSizes[b])
-    const sizesB = blockSizesForB.length > 0 ? blockSizesForB : BLOCK_SIZES
+    const sizesB = shuffleSizesBySeed(blockSizesForB.length > 0 ? blockSizesForB : BLOCK_SIZES, seedKey, b)
     const parentIdx = Math.floor(seededUnit(hashSeed(seedKey + ':parent:' + b)) * footprints.length)
     const parent = footprints[parentIdx]
     const perimeter = getPerimeterCells(parent)
@@ -195,7 +208,7 @@ export function placeBlocks(
         const adjCount = [[-1,0],[1,0],[0,-1],[0,1]].filter(([dx,dy]) =>
           excluded.has(cellKey(cx+dx, cy+dy))
         ).length
-        return adjCount >= 1 && adjCount <= 3
+        return adjCount >= 1
       })
       .map(([lx, ly]) => {
         const tie = seededUnit(hashSeed(seedKey + ':lane:' + b + ':' + lx + ',' + ly))
@@ -213,16 +226,22 @@ export function placeBlocks(
       const lk = cellKey(laneCell.cx, laneCell.cy)
       excluded.add(lk)
 
-      // Only east (1,0) and south (0,1): block extends +x,+y from top-left, so lane must stay west or north
-      const dirs: [number, number][] = [[1, 0], [0, 1]]
+      // All 4 directions. East/south: top-left 1 step from lane. West/north: top-left sized so block ends 1 step from lane.
+      type Dir = { dx: number; dy: number; nx: (w: number, h: number) => number; ny: (w: number, h: number) => number }
+      const dirs: Dir[] = [
+        { dx: 1, dy: 0, nx: () => laneCell.cx + 1, ny: () => laneCell.cy },
+        { dx: 0, dy: 1, nx: () => laneCell.cx, ny: () => laneCell.cy + 1 },
+        { dx: -1, dy: 0, nx: (w) => laneCell.cx - w, ny: () => laneCell.cy },
+        { dx: 0, dy: -1, nx: () => laneCell.cx, ny: (_, h) => laneCell.cy - h },
+      ]
       const order = [...dirs].sort(() => seededUnit(hashSeed(seedKey + ':dir:' + b + laneCell.cx + ',' + laneCell.cy)) - 0.5)
 
-      for (const [dx, dy] of order) {
-        const nx = laneCell.cx + dx
-        const ny = laneCell.cy + dy
-        if (!isAvailable(nx, ny, occupied) || excluded.has(cellKey(nx, ny))) continue
-
+      for (const d of order) {
         for (const [w, h] of sizesB) {
+          const nx = d.nx(w, h)
+          const ny = d.ny(w, h)
+          if (!isAvailable(nx, ny, occupied) || excluded.has(cellKey(nx, ny))) continue
+
           const fp: BlockFootprint = { cx: nx, cy: ny, w, h }
           if (!footprintInBounds(fp)) continue
           if (footprintOverlapsExclusion(fp, excluded)) continue
