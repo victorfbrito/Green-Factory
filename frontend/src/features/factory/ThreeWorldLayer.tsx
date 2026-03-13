@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
-import type { DistrictPlacement, Block, PathCell } from '../../lib/procedural'
+import type { DistrictPlacement, CompoundDrawable, PathCell, Block } from '../../lib/procedural'
 import { CELL_SIZE, MAP_SIZE } from '../../lib/procedural'
 import { BLOCK_COLORS, PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
 
@@ -10,14 +10,17 @@ export const CAMERA_X = 900
 export const CAMERA_Y = 900
 export const CAMERA_Z = 900
 
+const BLOCK_BORDER_COLOR = '#f97316'
+
 interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
+  compoundDrawables: CompoundDrawable[][]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
 }
 
-export function ThreeWorldLayer({ districts, blockLists, paths, serviceLaneCells }: ThreeWorldLayerProps) {
+export function ThreeWorldLayer({ districts, compoundDrawables, blockLists, paths, serviceLaneCells }: ThreeWorldLayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [topDownView, setTopDownView] = useState(true)
 
@@ -97,14 +100,17 @@ export function ThreeWorldLayer({ districts, blockLists, paths, serviceLaneCells
 
     const heightScale = 16
     const centerOffset = MAP_SIZE / 2
+    const heightMultipliers = [0.8, 1.0, 1.2, 1.4]
 
-    const addBlock = (block: Block, districtIndex: number) => {
-      const blockHeight = block.isLandmark ? heightScale * 1.8 : heightScale
+    const addCompound = (drawable: CompoundDrawable, districtIndex: number) => {
+      const baseHeight = drawable.isLandmark ? heightScale * 1.8 : heightScale
+      const level = drawable.heightLevel ?? 0
+      const compoundHeight = baseHeight * (heightMultipliers[level] ?? 1)
 
-      const geometry = new THREE.BoxGeometry(block.w, blockHeight, block.h)
+      const geometry = new THREE.BoxGeometry(drawable.w, compoundHeight, drawable.h)
 
       const base = baseColors[districtIndex % baseColors.length]
-      const shade = block.shade ?? 1
+      const shade = drawable.shade ?? 1
       const color = base.clone().multiplyScalar(shade)
 
       const material = new THREE.MeshStandardMaterial({
@@ -115,15 +121,46 @@ export function ThreeWorldLayer({ districts, blockLists, paths, serviceLaneCells
 
       const mesh = new THREE.Mesh(geometry, material)
 
-      const worldX = block.x + block.w / 2 - centerOffset
-      const worldZ = block.y + block.h / 2 - centerOffset
+      const worldX = drawable.x + drawable.w / 2 - centerOffset
+      const worldZ = drawable.y + drawable.h / 2 - centerOffset
 
-      mesh.position.set(worldX, blockHeight / 2, worldZ)
+      mesh.position.set(worldX, compoundHeight / 2, worldZ)
       scene.add(mesh)
     }
 
-    blockLists.forEach((blocks, i) => {
-      blocks.forEach((block) => addBlock(block, i))
+    compoundDrawables.forEach((drawables, i) => {
+      drawables.forEach((d) => addCompound(d, i))
+    })
+
+    // Block borders: orange outlines above compounds (higher z-index via y position)
+    const maxCompoundHeight = heightScale * 1.4 * 1.8
+    const blockBorderHeight = maxCompoundHeight + 2
+    const blockBorderMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color(BLOCK_BORDER_COLOR),
+      linewidth: 2,
+    })
+    blockLists.forEach((blocks) => {
+      for (const block of blocks) {
+        if (block.compounds.length === 0) continue
+        const minCx = Math.min(...block.compounds.map((c) => c.cx))
+        const minCy = Math.min(...block.compounds.map((c) => c.cy))
+        const maxCx = Math.max(...block.compounds.map((c) => c.cx + c.w))
+        const maxCy = Math.max(...block.compounds.map((c) => c.cy + c.h))
+        const minX = minCx * CELL_SIZE - centerOffset
+        const minZ = minCy * CELL_SIZE - centerOffset
+        const maxX = maxCx * CELL_SIZE - centerOffset
+        const maxZ = maxCy * CELL_SIZE - centerOffset
+        const points = [
+          new THREE.Vector3(minX, blockBorderHeight, minZ),
+          new THREE.Vector3(maxX, blockBorderHeight, minZ),
+          new THREE.Vector3(maxX, blockBorderHeight, maxZ),
+          new THREE.Vector3(minX, blockBorderHeight, maxZ),
+          new THREE.Vector3(minX, blockBorderHeight, minZ),
+        ]
+        const geometry = new THREE.BufferGeometry().setFromPoints(points)
+        const line = new THREE.Line(geometry, blockBorderMaterial)
+        scene.add(line)
+      }
     })
 
     // Path layer: flat tiles on the ground at each path cell.
@@ -269,7 +306,7 @@ export function ThreeWorldLayer({ districts, blockLists, paths, serviceLaneCells
         container.removeChild(renderer.domElement)
       }
     }
-  }, [districts, blockLists, paths, serviceLaneCells, topDownView])
+  }, [districts, compoundDrawables, blockLists, paths, serviceLaneCells, topDownView])
 
   return (
     <div className="factory-map__three-wrapper">

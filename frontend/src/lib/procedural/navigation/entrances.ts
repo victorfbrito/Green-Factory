@@ -6,21 +6,16 @@
 import { hashSeed, seededUnit } from '../seed'
 import { cellKey } from '../grid'
 import type { NavGrid } from './navGrid'
-import type { Block } from '../buildings/blocks'
+import { getCompoundCells } from '../compounds/compoundExtract'
+import type { Compound } from '../compounds/compoundExtract'
 
 const DIRS: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]]
 
-function getBlockOccupancy(blocks: Block[]): Set<string> {
+function getCompoundOccupancy(compounds: Compound[]): Set<string> {
   const out = new Set<string>()
-  for (const b of blocks) {
-    const cxStart = Math.floor(b.x / 14)
-    const cxEnd = Math.floor((b.x + b.w - 0.001) / 14)
-    const cyStart = Math.floor(b.y / 14)
-    const cyEnd = Math.floor((b.y + b.h - 0.001) / 14)
-    for (let cx = cxStart; cx <= cxEnd; cx++) {
-      for (let cy = cyStart; cy <= cyEnd; cy++) {
-        out.add(cellKey(cx, cy))
-      }
+  for (const c of compounds) {
+    for (const k of getCompoundCells(c)) {
+      out.add(k)
     }
   }
   return out
@@ -66,13 +61,13 @@ function manhattan(ax: number, ay: number, bx: number, by: number): number {
 export function selectDistrictEntrance(
   grid: NavGrid,
   districtIndex: number,
-  blocks: Block[],
+  compounds: Compound[],
   anchorCx: number,
   anchorCy: number,
   hubCell: { cx: number; cy: number },
   seedKey: string
 ): { cx: number; cy: number } | null {
-  const buildingCells = getBlockOccupancy(blocks)
+  const buildingCells = getCompoundOccupancy(compounds)
   const candidates = getCandidateEntranceCells(grid, buildingCells)
   if (candidates.length === 0) return null
 

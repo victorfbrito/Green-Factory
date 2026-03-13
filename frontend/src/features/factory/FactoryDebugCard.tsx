@@ -109,7 +109,7 @@ export function FactoryDebugCard({ factory, renderModel }: FactoryDebugCardProps
           <strong style={{ opacity: 0.9 }}>Scene summary</strong>
           <ul style={{ margin: '0.25rem 0 0 0', paddingLeft: '1.25rem' }}>
             <li>shared world grid: 60×60 cells · districts: {districts.length}</li>
-            <li>each district: territory on grid → compound layout (rectangles) → blocks · paths and service lanes are post-process</li>
+            <li>each district: territory → compound layout → compound extraction → block formation (1–4 compounds/block) → building layer · paths and service lanes are post-process</li>
           </ul>
         </div>
       </div>

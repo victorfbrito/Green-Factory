@@ -17,7 +17,7 @@ export const MIN_TERRITORY_BY_TIER: number[] = [2, 3, 6, 10, 16, 24]
 
 const MAX_TERRITORY_BY_TIER: number[] = [4, 9, 18, 30, 46, 70]
 
-/** Deterministic cell budget for a district. */
+/** Deterministic cell budget for a district (legacy; used when block plan unavailable). */
 export function getTerritoryBudget(tier: number, xpShare: number, seedKey: string): number {
   const t = Math.max(0, Math.min(5, tier))
   const minB = MIN_TERRITORY_BY_TIER[t]
@@ -26,6 +26,28 @@ export function getTerritoryBudget(tier: number, xpShare: number, seedKey: strin
   let offset = Math.floor(seeded(seedKey, 'tb') * span)
   if (span > 1 && xpShare > 0.6) offset = Math.min(offset + 1, span - 1)
   return minB + offset
+}
+
+/** Cells per compound (average footprint). */
+const CELLS_PER_COMPOUND = 4
+
+/** Lane cells between blocks. */
+const LANE_CELLS_PER_CONNECTION = 1
+
+/** Margin factor so envelope extends beyond block layout (2.2 = 120% extra for irregular shapes). */
+const TERRITORY_MARGIN = 2.2
+
+/**
+ * Territory budget to fit block plan. Sized from compound count and block grouping.
+ * NOT the source of compound count; supports the block plan.
+ */
+export function getTerritoryBudgetForBlocks(blockSizes: number[], seedKey: string): number {
+  if (blockSizes.length === 0) return 4
+  const buildingCells = blockSizes.reduce((s, n) => s + n * CELLS_PER_COMPOUND, 0)
+  const laneCells = Math.max(0, blockSizes.length - 1) * LANE_CELLS_PER_CONNECTION
+  const raw = Math.ceil((buildingCells + laneCells) * TERRITORY_MARGIN)
+  const tie = Math.floor(seeded(seedKey, 'tbfb') * 3)
+  return Math.max(4, raw + tie)
 }
 
 function countTerritoryNeighbors(cx: number, cy: number, territorySet: Set<string>): number {
@@ -117,7 +139,7 @@ export function growTerritory(
     }
 
     const step = out.length
-    const useParcel = seededUnit(hashSeed(seedKey + ':parcel:' + step)) < 0.45
+    const useParcel = seededUnit(hashSeed(seedKey + ':parcel:' + step)) < 0.55
     if (useParcel) {
       const shapeIndex = Math.floor(seededUnit(hashSeed(seedKey + ':shape:' + step)) * PARCEL_SHAPES.length) % PARCEL_SHAPES.length
       const shape = PARCEL_SHAPES[shapeIndex]

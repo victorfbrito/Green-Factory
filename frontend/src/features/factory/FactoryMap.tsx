@@ -9,12 +9,13 @@ interface FactoryMapProps {
 }
 
 export function FactoryMap({ renderModel }: FactoryMapProps) {
-  const { worldTheme, districts, blockLists, paths, serviceLaneCells } = renderModel
+  const { worldTheme, districts, compoundDrawables, blockLists, paths, serviceLaneCells } = renderModel
   return (
     <div className="factory-map">
       <WorldLayer theme={worldTheme} />
       <ThreeWorldLayer
         districts={districts}
+        compoundDrawables={compoundDrawables}
         blockLists={blockLists}
         paths={paths}
         serviceLaneCells={serviceLaneCells}

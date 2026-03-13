@@ -1,20 +1,25 @@
 /**
  * Stage G: Render model assembly.
- * Combines districts, blocks, paths, service lanes, upgrades into one clean render model.
+ * Pipeline: block-first placement → compound packing → building layer → paths → service lanes.
  */
 
 import type { FactoryResponse } from '../../../types'
 import { buildSceneLayout } from '../scene/scene'
 import type { DistrictPlacement } from '../scene/types'
-import { getTerritoryBudget, growTerritory, getTerritoryBorderCells } from '../territory/territory'
-import { layoutCompoundsInTerritory } from '../compounds/compoundLayout'
-import { compoundsToBlocks } from '../buildings/blocks'
-import { getBuildingOccupancy } from '../buildings/buildingGrid'
+import { getTerritoryBorderCells } from '../territory/territory'
+import { getCompoundCountFromLanguage } from '../compounds/compoundCount'
+import { splitCompoundsIntoBlocks } from '../blocks/blockGrouping'
+import { placeBlocks, getBlockCellsFromFootprints } from '../blocks/blockPlacement'
+import { packCompoundsInBlock } from '../compounds/compoundPacking'
+import { getCompoundOccupancy } from '../buildings/occupancy'
+import { compoundsToDrawables } from '../buildings/drawables'
 import { buildNavGrid } from '../navigation/navGrid'
 import { buildPaths } from '../navigation/paths'
 import { buildServiceLanes } from '../navigation/serviceLanes'
 import { cellKey, worldToCell } from '../grid'
-import type { Block } from '../buildings/blocks'
+import type { Compound } from '../compounds/compoundExtract'
+import type { Block } from '../blocks/blockFormation'
+import type { CompoundDrawable } from '../buildings/drawables'
 import type { PathCell } from '../navigation/paths'
 import type { WorldThemeId } from '../scene/types'
 
@@ -22,6 +27,7 @@ export interface FactoryRenderModel {
   worldTheme: WorldThemeId
   mapSize: number
   districts: DistrictPlacement[]
+  compoundDrawables: CompoundDrawable[][]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
@@ -32,13 +38,7 @@ export interface FactoryRenderModel {
 
 /**
  * Full pipeline: FactoryResponse => FactoryRenderModel.
- * A. Scene layout
- * B. Territory generation
- * C. Compound layout
- * D. Building layer (blocks)
- * E. Path layer
- * F. Service lane layer
- * G. Render model assembly
+ * Block-first: place blocks as connected graph, pack compounds inside, then paths and service lanes.
  */
 export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRenderModel {
   const scene = buildSceneLayout(factory)
@@ -49,6 +49,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       worldTheme,
       mapSize,
       districts: [],
+      compoundDrawables: [],
       blockLists: [],
       paths: [],
       serviceLaneCells: [],
@@ -58,56 +59,96 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     }
   }
 
-  // B. Territory generation
-  const occupied = new Set<string>()
-  const anchorCellsByIndex = districts.map((d) => cellKey(...worldToCell(d.x, d.y)))
-  const budgets = districts.map((d) => getTerritoryBudget(d.language.sector_tier, d.language.xp_share, d.language.seed_key))
-  const byBudgetDesc = districts.map((_, i) => i).sort((a, b) => budgets[b] - budgets[a] || a - b)
-  const territoryByIndex: [number, number][][] = districts.map(() => [])
+  // B. Compound count from language → block grouping (territory expands to fit, compound-driven)
+  const compoundCounts = districts.map((d) =>
+    getCompoundCountFromLanguage(d.language.xp, d.language.sector_tier, d.language.xp_share, d.language.seed_key)
+  )
+  console.log('[factory] compound counts by district:', compoundCounts.map((c, i) => ({ district: districts[i].language.language_name, count: c })))
+  const blockSizesByDistrict = compoundCounts.map((count, i) =>
+    splitCompoundsIntoBlocks(count, districts[i].language.seed_key)
+  )
 
-  for (const i of byBudgetDesc) {
-    const d = districts[i]
-    const budget = budgets[i]
-    const protectedCells = new Set<string>()
-    for (let j = 0; j < districts.length; j++) if (j !== i) protectedCells.add(anchorCellsByIndex[j])
-    const territory = growTerritory(d.x, d.y, budget, occupied, d.language.seed_key, protectedCells)
-    territoryByIndex[i] = territory
+  // Occupied = anchors + (territory + 1-cell buffer) from previous districts. Districts don't touch (incl. diagonal).
+  const anchorCellsByIndex = districts.map((d) => cellKey(...worldToCell(d.x, d.y)))
+  const byCompoundCountDesc = districts.map((_, i) => i).sort((a, b) => compoundCounts[b] - compoundCounts[a] || a - b)
+  const territoryByIndex: [number, number][][] = districts.map(() => [])
+  let occupied = new Set<string>()
+  for (let j = 0; j < districts.length; j++) occupied.add(anchorCellsByIndex[j])
+  let blockCellsAll = new Set<string>()
+  const NEIGHBORS_8: [number, number][] = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
+  const addCellsWithBuffer = (cells: [number, number][], into: Set<string>) => {
+    for (const [cx, cy] of cells) {
+      into.add(cellKey(cx, cy))
+      for (const [dx, dy] of NEIGHBORS_8) into.add(cellKey(cx + dx, cy + dy))
+    }
   }
 
-  // C. Compound layout + D. Building layer
-  const blockLists: Block[][] = []
+  // C. Block placement first (compound-driven) → territory expands to fit
+  const compoundLists: Compound[][] = districts.map(() => [])
+  const blockLists: Block[][] = districts.map(() => [])
+  const compoundDrawables: CompoundDrawable[][] = districts.map(() => [])
+  const blockLaneCellsByDistrict: { cx: number; cy: number }[][] = districts.map(() => [])
   const allBlocked = new Set<string>()
 
-  for (let i = 0; i < districts.length; i++) {
-    const territory = territoryByIndex[i]
+  for (const i of byCompoundCountDesc) {
+    const blockSizes = blockSizesByDistrict[i]
     const seedKey = districts[i].language.seed_key
     const isPrimary = i === anchorIndex
-    const buildingCells = layoutCompoundsInTerritory(territory, seedKey, isPrimary)
-    const blocks = compoundsToBlocks(buildingCells, territory, seedKey, isPrimary)
-    blockLists.push(blocks)
-    for (const k of getBuildingOccupancy(blocks)) {
+    const [anchorCx, anchorCy] = worldToCell(districts[i].x, districts[i].y)
+
+    const placement = placeBlocks(occupied, blockCellsAll, blockSizes, anchorCx, anchorCy, seedKey)
+    console.log('[factory] blocks placed:', districts[i].language.language_name, 'requested=', blockSizes.length, 'placed=', placement.footprints.length, 'territory=', placement.territoryCells.length)
+    territoryByIndex[i] = placement.territoryCells
+    addCellsWithBuffer(placement.territoryCells, occupied)
+    for (const k of getBlockCellsFromFootprints(placement.footprints)) blockCellsAll.add(k)
+
+    const compounds: Compound[] = []
+    const blocks: Block[] = []
+
+    for (let bi = 0; bi < placement.footprints.length; bi++) {
+      const fp = placement.footprints[bi]
+      const targetCount = blockSizes[bi] ?? 1
+      const blockCompounds = packCompoundsInBlock(fp, targetCount, seedKey, bi, isPrimary && bi === 0)
+      compounds.push(...blockCompounds)
+      blocks.push({ compounds: blockCompounds })
+    }
+
+    console.log('[factory] compounds packed:', districts[i].language.language_name, 'total=', compounds.length)
+    compoundLists[i] = compounds
+    blockLists[i] = blocks
+    compoundDrawables[i] = compoundsToDrawables(compounds, seedKey)
+    blockLaneCellsByDistrict[i] = placement.laneCells
+
+    for (const k of getCompoundOccupancy(compounds)) {
       allBlocked.add(k)
     }
   }
 
-  // E. Path layer
-  const pathResult = buildPaths(districts, blockLists, allBlocked)
+  // F. Path layer
+  const pathResult = buildPaths(districts, compoundLists, allBlocked)
 
-  // F. Service lane layer
+  // G. Service lane layer (block lanes + entrance connection)
   const grid = buildNavGrid(allBlocked)
   const districtAnchors = districts.map((d) => {
     const [cx, cy] = worldToCell(d.x, d.y)
     return { cx, cy }
   })
-  const serviceLaneCells = buildServiceLanes(grid, pathResult.paths, pathResult.entrances, districtAnchors)
+  const serviceLaneCells = buildServiceLanes(
+    grid,
+    pathResult.paths,
+    pathResult.entrances,
+    districtAnchors,
+    blockLaneCellsByDistrict
+  )
 
-  // G. Assembly
+  // H. Assembly
   const borderCellsByDistrict = territoryByIndex.map((t) => getTerritoryBorderCells(t))
 
   return {
     worldTheme,
     mapSize,
     districts,
+    compoundDrawables,
     blockLists,
     paths: pathResult.paths,
     serviceLaneCells,

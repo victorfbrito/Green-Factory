@@ -8,7 +8,7 @@ import { hashSeed, seededUnit } from '../seed'
 import { cellKey, MAP_SIZE, worldToCell } from '../grid'
 import { buildNavGrid, type NavGrid } from './navGrid'
 import { selectDistrictEntrance } from './entrances'
-import type { Block } from '../buildings/blocks'
+import type { Compound } from '../compounds/compoundExtract'
 import type { DistrictPlacement } from '../scene/types'
 
 export interface PathCell {
@@ -133,7 +133,7 @@ export interface PathLayerResult {
  */
 export function buildPaths(
   districts: DistrictPlacement[],
-  blockLists: Block[][],
+  compoundLists: Compound[][],
   blockedCells: Set<string>
 ): PathLayerResult {
   const grid = buildNavGrid(blockedCells)
@@ -150,9 +150,9 @@ export function buildPaths(
   for (let i = 0; i < districts.length; i++) {
     const d = districts[i]
     const [acx, acy] = worldToCell(d.x, d.y)
-    const blocks = blockLists[i] ?? []
+    const compounds = compoundLists[i] ?? []
     const entry =
-      selectDistrictEntrance(grid, i, blocks, acx, acy, hubCell, d.language.seed_key) ??
+      selectDistrictEntrance(grid, i, compounds, acx, acy, hubCell, d.language.seed_key) ??
       findNearestWalkable(grid, acx, acy)
     if (!entry) continue
     const path = findPathAStar(grid, roadCells, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
