@@ -3,7 +3,8 @@ import * as THREE from 'three'
 
 import type { DistrictPlacement, CompoundDrawable, PathCell, Block } from '../../lib/procedural'
 import { CELL_SIZE, MAP_SIZE } from '../../lib/procedural'
-import { BLOCK_COLORS, PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
+import { getLanguageTheme } from '../../lib/theme/duolingoLanguageThemes'
+import { PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
 
 // True isometric camera direction.
 export const CAMERA_X = 900
@@ -96,8 +97,6 @@ export function ThreeWorldLayer({ districts, compoundDrawables, blockLists, path
     axesHelper.position.set(-half + axesSize, 8, -half + axesSize)
     scene.add(axesHelper)
 
-    const baseColors = BLOCK_COLORS.map((c) => new THREE.Color(c))
-
     const heightScale = 16
     const centerOffset = MAP_SIZE / 2
     const heightMultipliers = [0.8, 1.0, 1.2, 1.4]
@@ -109,7 +108,9 @@ export function ThreeWorldLayer({ districts, compoundDrawables, blockLists, path
 
       const geometry = new THREE.BoxGeometry(drawable.w, compoundHeight, drawable.h)
 
-      const base = baseColors[districtIndex % baseColors.length]
+      const languageCode = districts[districtIndex]?.language?.language_code
+      const primaryHex = getLanguageTheme(languageCode).palette.primary
+      const base = new THREE.Color(primaryHex)
       const shade = drawable.shade ?? 1
       const color = base.clone().multiplyScalar(shade)
 
