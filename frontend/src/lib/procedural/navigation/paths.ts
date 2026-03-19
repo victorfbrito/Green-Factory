@@ -1,6 +1,6 @@
 /**
  * Stage E: Path layer.
- * Path – Sequence of walkable cells (hub ↔ district entrance).
+ * Path – Sequence of walkable cells (primary district ↔ other district entrances).
  * Post-process only. Pathfinding reads the map; paths never modify compounds or block counts.
  */
 
@@ -125,25 +125,28 @@ function findPathAStar(
 export interface PathLayerResult {
   paths: PathCell[][]
   entrances: { cx: number; cy: number }[]
+  /** District index for each entrance (indices may be sparse when some districts are skipped) */
+  districtIndices: number[]
 }
 
 /**
- * Build paths from hub to each district entrance.
+ * Build paths from primary district to each other district entrance.
  * Paths never modify compounds or block counts.
  */
 export function buildPaths(
   districts: DistrictPlacement[],
   compoundLists: Compound[][],
-  blockedCells: Set<string>
+  blockedCells: Set<string>,
+  anchorIndex: number
 ): PathLayerResult {
   const grid = buildNavGrid(blockedCells)
-  const hubWorld = MAP_SIZE / 2
-  const [hubCx, hubCy] = worldToCell(hubWorld, hubWorld)
-  const hubCell = findNearestWalkable(grid, hubCx, hubCy)
-  if (!hubCell) return { paths: [], entrances: [] }
+  const [rootAcx, rootAcy] = worldToCell(districts[anchorIndex]?.x ?? MAP_SIZE / 2, districts[anchorIndex]?.y ?? MAP_SIZE / 2)
+  const rootCell = findNearestWalkable(grid, rootAcx, rootAcy)
+  if (!rootCell) return { paths: [], entrances: [], districtIndices: [] }
 
   const paths: PathCell[][] = []
   const entrances: { cx: number; cy: number }[] = []
+  const districtIndices: number[] = []
   const roadCells = new Set<string>()
   const seedKeyForTies = districts[0]?.language.seed_key ?? 'paths'
 
@@ -152,18 +155,19 @@ export function buildPaths(
     const [acx, acy] = worldToCell(d.x, d.y)
     const compounds = compoundLists[i] ?? []
     const entry =
-      selectDistrictEntrance(grid, i, compounds, acx, acy, hubCell, d.language.seed_key) ??
+      selectDistrictEntrance(grid, i, compounds, acx, acy, rootCell, d.language.seed_key) ??
       findNearestWalkable(grid, acx, acy)
     if (!entry) continue
-    const path = findPathAStar(grid, roadCells, hubCell, entry, seedKeyForTies + ':' + d.language.seed_key)
-    if (path && path.length > 1) {
+    const path = findPathAStar(grid, roadCells, rootCell, entry, seedKeyForTies + ':' + d.language.seed_key)
+    if (path && path.length >= 1) {
       paths.push(path)
       entrances.push(entry)
+      districtIndices.push(i)
       for (const { cx, cy } of path) {
         roadCells.add(cellKey(cx, cy))
       }
     }
   }
 
-  return { paths, entrances }
+  return { paths, entrances, districtIndices }
 }
