@@ -7,8 +7,7 @@ import type { FactoryResponse } from '../../../types'
 import { buildSceneLayout } from '../scene/scene'
 import type { DistrictPlacement } from '../scene/types'
 import { getTerritoryBorderCells } from '../territory/territory'
-import { getCompoundCountFromLanguage } from '../compounds/compoundCount'
-import { splitCompoundsIntoBlocks } from '../blocks/blockGrouping'
+import { groupCompoundsIntoBlocks } from '../blocks/blockGrouping'
 import { placeBlocks, getBlockCellsFromFootprints } from '../blocks/blockPlacement'
 import { packCompoundsInBlock } from '../compounds/compoundPacking'
 import { getCompoundOccupancy } from '../buildings/occupancy'
@@ -32,6 +31,7 @@ export interface FactoryRenderModel {
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
   borderCellsByDistrict: [number, number][][]
+  territoryCellsByDistrict: [number, number][][]
   upgrades: { id: string; x: number; y: number; variant: number }[]
   anchorIndex: number
 }
@@ -54,18 +54,17 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       paths: [],
       serviceLaneCells: [],
       borderCellsByDistrict: [],
+      territoryCellsByDistrict: [],
       upgrades,
       anchorIndex,
     }
   }
 
-  // B. Compound count from language → block grouping (territory expands to fit, compound-driven)
-  const compoundCounts = districts.map((d) =>
-    getCompoundCountFromLanguage(d.language.xp, d.language.sector_tier, d.language.xp_share, d.language.seed_key)
-  )
+  // B. Compound count from backend → block grouping (territory expands to fit, compound-driven)
+  const compoundCounts = districts.map((d) => d.language.compound_count)
   console.log('[factory] compound counts by district:', compoundCounts.map((c, i) => ({ district: districts[i].language.language_name, count: c })))
   const blockSizesByDistrict = compoundCounts.map((count, i) =>
-    splitCompoundsIntoBlocks(count, districts[i].language.seed_key)
+    groupCompoundsIntoBlocks(count, districts[i].language.seed_key)
   )
 
   // Occupied = anchors + (territory + 1-cell buffer) from previous districts. Districts don't touch (incl. diagonal).
@@ -125,7 +124,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
   }
 
   // F. Path layer
-  const pathResult = buildPaths(districts, compoundLists, allBlocked)
+  const pathResult = buildPaths(districts, compoundLists, allBlocked, anchorIndex)
 
   // G. Service lane layer (block lanes + entrance connection)
   const grid = buildNavGrid(allBlocked)
@@ -137,6 +136,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     grid,
     pathResult.paths,
     pathResult.entrances,
+    pathResult.districtIndices,
     districtAnchors,
     blockLaneCellsByDistrict
   )
@@ -153,6 +153,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     paths: pathResult.paths,
     serviceLaneCells,
     borderCellsByDistrict,
+    territoryCellsByDistrict: territoryByIndex,
     upgrades,
     anchorIndex,
   }

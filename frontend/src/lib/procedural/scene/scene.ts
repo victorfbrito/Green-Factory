@@ -26,7 +26,7 @@ function getThemeFromLabel(label: string): WorldThemeId {
 
 function orderLanguagesBySize(languages: FactoryLanguage[]): FactoryLanguage[] {
   return [...languages].sort((a, b) => {
-    if (b.sector_tier !== a.sector_tier) return b.sector_tier - a.sector_tier
+    if (b.compound_count !== a.compound_count) return b.compound_count - a.compound_count
     if (Math.abs(b.xp_share - a.xp_share) > 1e-9) return b.xp_share - a.xp_share
     return a.sort_order - b.sort_order
   })
@@ -53,7 +53,7 @@ export function buildSceneLayout(factory: FactoryResponse): SceneLayout {
   const ordered = orderLanguagesBySize(languages)
   const anchorIndex = languages.indexOf(ordered[0])
   const anchor = ordered[0]
-  const anchorRadius = seededRadius(anchor.seed_key, anchor.sector_tier, anchor.xp_share)
+  const anchorRadius = seededRadius(anchor.seed_key, anchor.compound_count, anchor.xp_share)
 
   const districts: DistrictPlacement[] = []
   districts.push({
@@ -67,7 +67,7 @@ export function buildSceneLayout(factory: FactoryResponse): SceneLayout {
   const orbitRadius = 78
   for (let i = 1; i < ordered.length; i++) {
     const lang = ordered[i]
-    const r = seededRadius(lang.seed_key, lang.sector_tier, lang.xp_share)
+    const r = seededRadius(lang.seed_key, lang.compound_count, lang.xp_share)
     const angle = seededAngle(lang.seed_key, i)
     districts.push({
       language: lang,

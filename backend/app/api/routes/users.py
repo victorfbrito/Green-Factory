@@ -32,7 +32,7 @@ def get_user_factory(
     username: str,
     db: Session = Depends(get_db),
 ) -> FactoryResponse:
-    """Return factory-ready payload (user + languages with xp_share, sector_tier). DB only, no Duolingo call."""
+    """Return factory-ready payload (user + languages with compound progression). DB only, no Duolingo call."""
     service = UserService(db)
     try:
         return service.get_factory_payload(username)

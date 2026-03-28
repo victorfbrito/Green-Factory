@@ -50,8 +50,8 @@ A district contains:
 - compounds inside those blocks
 
 District size is determined by:
-- sector_tier
-- xp_share
+- compound_count (from backend; XP-based progression)
+- xp_share (relative weighting)
 
 
 --------------------------------------------------
@@ -229,8 +229,8 @@ The factory environment is generated in the following order (compound-driven):
 
 FactoryResponse  
 → Scene layout (district anchors)  
-→ Compound count from language  
-→ Block grouping (split compounds into blocks)  
+→ Compound count from backend (FactoryLanguage.compound_count)  
+→ Block grouping (groupCompoundsIntoBlocks: 1–4 per block)  
 → Block placement (connected graph, 1-cell lanes; uses available grid cells)  
 → Territory (derived from placement: blocks + lanes)  
 → Compound packing (inside each block)  

@@ -7,6 +7,7 @@ from app.db.models.language import Language
 from app.db.models.user import User
 from app.repositories.language_repository import LanguageRepository
 from app.repositories.user_repository import UserRepository
+from app.compound_progression import get_compound_progress
 from app.schemas.user import (
     FactoryLanguageResponse,
     FactoryMeta,
@@ -17,7 +18,6 @@ from app.schemas.user import (
     TopFactoryItemResponse,
     UserRefreshResponse,
     _streak_to_band,
-    _xp_to_sector_tier,
     build_upgrade_details,
     compute_environment_state,
     compute_factory_derived,
@@ -118,21 +118,26 @@ class UserService:
         )
         environment_level, environment_label = compute_environment_state(sustainability_score)
         unlocked_upgrades_list = compute_unlocked_upgrades(user.streak)
-        lang_list = [
-            FactoryLanguageResponse(
-                course_id=lang.duolingo_course_id,
-                language_code=lang.language_code,
-                language_name=lang.language_name,
-                xp=lang.xp,
-                crowns=lang.crowns,
-                is_current=lang.duolingo_course_id == current_course_id,
-                xp_share=round(lang.xp / total_language_xp, 2) if total_language_xp else 0.0,
-                sector_tier=_xp_to_sector_tier(lang.xp),
-                sort_order=idx,
-                seed_key=f"{user.username}:{lang.duolingo_course_id}",
+        lang_list = []
+        for idx, lang in enumerate(sorted_languages):
+            progress = get_compound_progress(lang.xp)
+            lang_list.append(
+                FactoryLanguageResponse(
+                    course_id=lang.duolingo_course_id,
+                    language_code=lang.language_code,
+                    language_name=lang.language_name,
+                    xp=lang.xp,
+                    crowns=lang.crowns,
+                    is_current=lang.duolingo_course_id == current_course_id,
+                    xp_share=round(lang.xp / total_language_xp, 2) if total_language_xp else 0.0,
+                    sort_order=idx,
+                    seed_key=f"{user.username}:{lang.duolingo_course_id}",
+                    compound_count=progress.compound_count,
+                    next_compound_at_xp=progress.next_compound_at_xp,
+                    xp_to_next_compound=progress.xp_to_next_compound,
+                    compound_progress_ratio=progress.compound_progress_ratio,
+                )
             )
-            for idx, lang in enumerate(sorted_languages)
-        ]
         return FactoryResponse(
             user=FactoryUserResponse(
                 username=user.username,

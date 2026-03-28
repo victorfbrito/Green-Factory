@@ -29,11 +29,12 @@ export function seededAngle(seedKey: string, index: number): number {
   return seededUnit(h) * Math.PI * 2
 }
 
-/** Radius for a district: tier + xp_share influence, deterministic. */
-export function seededRadius(seedKey: string, tier: number, share: number): number {
+/** Radius for a district: compound_count + xp_share influence, deterministic. */
+export function seededRadius(seedKey: string, compoundCount: number, share: number): number {
   const h = hashSeed(seedKey + ':r')
   const jitter = seededUnit(h) * 0.15 + 0.925 // small variation 0.925..1.075
-  const base = 28 + tier * 18 + share * 24
+  const scale = Math.min(20, Math.log2(compoundCount + 1) * 4)
+  const base = 28 + scale * 4 + share * 24
   return Math.max(32, Math.min(120, base * jitter))
 }
 

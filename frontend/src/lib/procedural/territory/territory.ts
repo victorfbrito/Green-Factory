@@ -12,22 +12,6 @@ import { PARCEL_SHAPES } from './parcels'
 const CARDINAL = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const
 const TERRITORY_NOISE_SCALE = 0.22
 
-/** Guaranteed minimum cells per district by tier. */
-export const MIN_TERRITORY_BY_TIER: number[] = [2, 3, 6, 10, 16, 24]
-
-const MAX_TERRITORY_BY_TIER: number[] = [4, 9, 18, 30, 46, 70]
-
-/** Deterministic cell budget for a district (legacy; used when block plan unavailable). */
-export function getTerritoryBudget(tier: number, xpShare: number, seedKey: string): number {
-  const t = Math.max(0, Math.min(5, tier))
-  const minB = MIN_TERRITORY_BY_TIER[t]
-  const maxB = MAX_TERRITORY_BY_TIER[t]
-  const span = maxB - minB + 1
-  let offset = Math.floor(seeded(seedKey, 'tb') * span)
-  if (span > 1 && xpShare > 0.6) offset = Math.min(offset + 1, span - 1)
-  return minB + offset
-}
-
 /** Cells per compound (average footprint). */
 const CELLS_PER_COMPOUND = 4
 

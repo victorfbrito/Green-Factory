@@ -1,47 +1,68 @@
 {
-    "id": 3,
-    "username": "IzaRicheto",
-    "display_name": "Izabelle Richeto",
-    "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/1334932660/SSR-XPcEM7Asyf",
-    "timezone": null,
-    "streak": 0,
-    "streak_extended_today": false,
-    "total_xp": 32233,
-    "current_course_id": "DUOLINGO_JA_PT",
-    "last_synced_at": "2026-03-09T21:55:20.790214Z",
-    "languages": [
+  "user": {
+    "username": "cauediademi",
+    "display_name": "Cauê Diademi",
+    "streak": 17,
+    "total_xp": 9362,
+    "current_course_id": "DUOLINGO_JA_PT"
+  },
+  "factory_meta": {
+    "total_languages": 2,
+    "primary_language_code": "ja",
+    "active_streak_band": "steady",
+    "dominant_language_xp_share": 0.83,
+    "sustainability_score": 47,
+    "environment_level": 2,
+    "environment_label": "sustainable",
+    "unlocked_upgrades": [
+      "solar_panels",
+      "water_recycling"
+    ],
+    "upgrade_details": [
       {
-        "id": 18,
-        "duolingo_course_id": "DUOLINGO_JA_PT",
-        "language_code": "ja",
-        "language_name": "Japanese",
-        "xp": 5886,
-        "crowns": 9999
+        "id": "solar_panels",
+        "title": "Solar Panels",
+        "short_description": "Generate clean electricity on-site.",
+        "educational_note": "Many factories use rooftop solar to reduce dependence on fossil fuels."
       },
       {
-        "id": 19,
-        "duolingo_course_id": "DUOLINGO_IT_PT",
-        "language_code": "it",
-        "language_name": "Italian",
-        "xp": 26347,
-        "crowns": 9999
-      },
-      {
-        "id": 20,
-        "duolingo_course_id": "DUOLINGO_EN_PT",
-        "language_code": "en",
-        "language_name": "English",
-        "xp": 0,
-        "crowns": 9999
-      },
-      {
-        "id": 21,
-        "duolingo_course_id": "DUOLINGO_FR_PT",
-        "language_code": "fr",
-        "language_name": "French",
-        "xp": 0,
-        "crowns": 9999
+        "id": "water_recycling",
+        "title": "Water Recycling",
+        "short_description": "Reuse industrial water more efficiently.",
+        "educational_note": "Water recycling systems help reduce freshwater waste in industrial processes."
       }
     ]
-  }
-  
+  },
+  "languages": [
+    {
+      "course_id": "DUOLINGO_JA_PT",
+      "language_code": "ja",
+      "language_name": "Japanese",
+      "xp": 7801,
+      "crowns": 9999,
+      "is_current": true,
+      "xp_share": 0.83,
+      "sort_order": 0,
+      "seed_key": "cauediademi:DUOLINGO_JA_PT",
+      "compound_count": 26,
+      "next_compound_at_xp": 8150,
+      "xp_to_next_compound": 349,
+      "compound_progress_ratio": 0.4416
+    },
+    {
+      "course_id": "DUOLINGO_RU_EN",
+      "language_code": "ru",
+      "language_name": "Russian",
+      "xp": 1561,
+      "crowns": 9999,
+      "is_current": false,
+      "xp_share": 0.17,
+      "sort_order": 1,
+      "seed_key": "cauediademi:DUOLINGO_RU_EN",
+      "compound_count": 12,
+      "next_compound_at_xp": 1675,
+      "xp_to_next_compound": 114,
+      "compound_progress_ratio": 0.5855
+    }
+  ]
+}

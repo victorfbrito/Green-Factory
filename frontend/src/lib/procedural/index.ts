@@ -24,8 +24,7 @@ export {
 export type { SceneLayout, DistrictPlacement, UpgradePlacement, WorldThemeId } from './scene/types'
 export type { FactoryRenderModel } from './render-model/buildFactoryRenderModel'
 
-export { getTerritoryBudget, getTerritoryBudgetForBlocks, growTerritory, getTerritoryBorderCells, MIN_TERRITORY_BY_TIER } from './territory/territory'
-export { getCompoundCountFromLanguage } from './compounds/compoundCount'
+export { getTerritoryBudgetForBlocks, growTerritory, getTerritoryBorderCells } from './territory/territory'
 
 export {
   MAP_SIZE,

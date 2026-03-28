@@ -10,8 +10,7 @@ import type { BlockFootprint } from '../blocks/blockPlacement'
 
 const RECT_ORDER: [number, number][] = [
   [2, 2], [3, 2], [2, 3], [3, 3],
-  [2, 1], [1, 2], [3, 1], [1, 3],
-  [1, 1],
+  [3, 1], [1, 3],
 ]
 
 function getFootprintCells(fp: BlockFootprint): Set<string> {
@@ -110,12 +109,13 @@ export function packCompoundsInBlock(
     }
   }
 
-  if (compounds.length === 0 && available.size > 0) {
+  if (compounds.length === 0 && available.size >= 4) {
     const first = order.find(([cx, cy]) => available.has(cellKey(cx, cy)))
     if (first) {
       const [cx, cy] = first
-      available.delete(cellKey(cx, cy))
-      compounds.push({ cx, cy, w: 1, h: 1 })
+      if (tryPlaceCompound(cx, cy, 2, 2, available)) {
+        compounds.push({ cx, cy, w: 2, h: 2 })
+      }
     }
   }
 

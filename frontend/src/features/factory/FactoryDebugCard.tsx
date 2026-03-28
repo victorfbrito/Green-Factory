@@ -1,6 +1,5 @@
 import type { FactoryResponse } from '../../types'
 import type { FactoryRenderModel } from '../../lib/procedural'
-import { getTerritoryBudget } from '../../lib/procedural'
 import { DISTRICT_COLORS } from './constants'
 
 interface FactoryDebugCardProps {
@@ -18,7 +17,7 @@ const themeVarNames: Record<string, string> = {
 
 export function FactoryDebugCard({ factory, renderModel }: FactoryDebugCardProps) {
   const { user, factory_meta, languages } = factory
-  const { worldTheme, mapSize, districts } = renderModel
+  const { worldTheme, mapSize, districts, territoryCellsByDistrict } = renderModel
 
   return (
     <section
@@ -77,15 +76,48 @@ export function FactoryDebugCard({ factory, renderModel }: FactoryDebugCardProps
             {districts.map((d, i) => {
               const color = DISTRICT_COLORS[i % DISTRICT_COLORS.length]
               const lang = d.language
+              const territoryCells = territoryCellsByDistrict[i] ?? []
+              const territorySize = territoryCells.length
               return (
-                <li key={lang.seed_key} style={{ marginBottom: '0.35rem' }}>
+                <li key={lang.seed_key} style={{ marginBottom: '0.5rem' }}>
                   <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: color, verticalAlign: 'middle', marginRight: 6 }} />
-                  [{i}] {lang.language_name} — course_id: <code>{lang.course_id}</code> · xp: {lang.xp} · xp_share: {lang.xp_share} · sector_tier: {lang.sector_tier} · sort_order: {lang.sort_order}
+                  [{i}] {lang.language_name} — course_id: <code>{lang.course_id}</code> · xp: {lang.xp.toLocaleString()} · xp_share: {lang.xp_share} · sort_order: {lang.sort_order}
                   {lang.is_current && ' · is_current'}
                   <br />
-                  <span style={{ paddingLeft: 16, opacity: 0.8 }}>
+                  <span style={{ paddingLeft: 16, opacity: 0.9 }}>
+                    compound_count: {lang.compound_count} · next at {lang.next_compound_at_xp.toLocaleString()} XP · xp_to_next: {lang.xp_to_next_compound.toLocaleString()}
+                  </span>
+                  <div style={{ paddingLeft: 16, marginTop: '0.2rem' }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Progress to next compound: </span>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: 80,
+                        height: 6,
+                        background: 'rgba(255,255,255,0.2)',
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        verticalAlign: 'middle',
+                        marginLeft: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'block',
+                          width: `${lang.compound_progress_ratio * 100}%`,
+                          height: '100%',
+                          background: color,
+                          borderRadius: 3,
+                        }}
+                      />
+                    </span>
+                    <span style={{ marginLeft: 6, fontSize: '0.75rem', opacity: 0.85 }}>
+                      {Math.round(lang.compound_progress_ratio * 100)}%
+                    </span>
+                  </div>
+                  <span style={{ paddingLeft: 16, display: 'block', marginTop: '0.2rem', opacity: 0.8 }}>
                     seed_key: {lang.seed_key} · variant: {d.variant} · color: {color} · anchor: ({d.x.toFixed(0)}, {d.y.toFixed(0)})
-                    {' · '}territory_budget: {getTerritoryBudget(lang.sector_tier, lang.xp_share, lang.seed_key)} cells (world grid + motifs)
+                    {' · '}territory: {territorySize} cells (from placement)
                   </span>
                 </li>
               )
@@ -109,7 +141,7 @@ export function FactoryDebugCard({ factory, renderModel }: FactoryDebugCardProps
           <strong style={{ opacity: 0.9 }}>Scene summary</strong>
           <ul style={{ margin: '0.25rem 0 0 0', paddingLeft: '1.25rem' }}>
             <li>shared world grid: 60×60 cells · districts: {districts.length}</li>
-            <li>each district: territory → compound layout → compound extraction → block formation (1–4 compounds/block) → building layer · paths and service lanes are post-process</li>
+            <li>pipeline: compound_count (backend) → block grouping (1–4/block) → block placement → territory from placement → compound packing → building layer · paths and service lanes are post-process</li>
           </ul>
         </div>
       </div>

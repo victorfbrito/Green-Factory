@@ -32,20 +32,6 @@ class UserRefreshResponse(UserResponse):
 
 
 # --- Factory visualization payload (UI-oriented, derived fields) ---
-# Sector tier: 0 = 0 xp, 1 = 1–499, 2 = 500–1999, 3 = 2000–9999, 4 = 10000–49999, 5 = 50000+
-
-def _xp_to_sector_tier(xp: int) -> int:
-    if xp <= 0:
-        return 0
-    if xp < 500:
-        return 1
-    if xp < 2000:
-        return 2
-    if xp < 10000:
-        return 3
-    if xp < 50000:
-        return 4
-    return 5
 
 
 def _streak_to_band(streak: int) -> str:
@@ -239,9 +225,12 @@ class FactoryLanguageResponse(BaseModel):
     crowns: int
     is_current: bool
     xp_share: float
-    sector_tier: int
     sort_order: int
     seed_key: str
+    compound_count: int
+    next_compound_at_xp: int
+    xp_to_next_compound: int
+    compound_progress_ratio: float
 
 
 class FactoryUserResponse(BaseModel):

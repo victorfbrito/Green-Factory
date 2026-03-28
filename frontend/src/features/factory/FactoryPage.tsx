@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { openFactory } from '../../api'
 import { buildFactoryRenderModel } from '../../lib/procedural'
@@ -26,6 +26,16 @@ export function FactoryPage() {
       .finally(() => setLoading(false))
   }, [username])
 
+  const renderModel = useMemo(() => {
+    if (!factory) return null
+    try {
+      return buildFactoryRenderModel(factory)
+    } catch (e) {
+      console.error('buildFactoryRenderModel failed:', e)
+      return null
+    }
+  }, [factory])
+
   if (loading) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -42,7 +52,13 @@ export function FactoryPage() {
     )
   }
 
-  const renderModel = buildFactoryRenderModel(factory)
+  if (!renderModel) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#c00' }}>
+        Failed to build factory layout. Check console for details.
+      </div>
+    )
+  }
 
   return (
     <div
@@ -55,7 +71,7 @@ export function FactoryPage() {
       }}
     >
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <FactoryMap renderModel={renderModel} />
+        <FactoryMap factory={factory} renderModel={renderModel} />
         <FactorySidebar factory={factory} />
       </div>
       <FactoryDebugCard factory={factory} renderModel={renderModel} />

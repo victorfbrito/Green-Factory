@@ -1,61 +1,74 @@
 {
-    "items": [
-      {
-        "username": "virtofb",
-        "display_name": "Victor Brito",
-        "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/393506258/SSR-rnZFgV869p",
-        "total_xp": 74683,
-        "streak": 625,
-        "current_course_id": "DUOLINGO_FR_EN",
-        "total_languages": 2,
-        "primary_language_code": "fr",
-        "dominant_language_xp_share": 0.96,
-        "sustainability_score": 85,
-        "environment_level": 4,
-        "environment_label": "regenerative"
-      },
-      {
-        "username": "IzaRicheto",
-        "display_name": "Izabelle Richeto",
-        "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/1334932660/SSR-XPcEM7Asyf",
-        "total_xp": 32233,
-        "streak": 0,
-        "current_course_id": "DUOLINGO_JA_PT",
-        "total_languages": 4,
-        "primary_language_code": "it",
-        "dominant_language_xp_share": 0.82,
-        "sustainability_score": 30,
-        "environment_level": 1,
-        "environment_label": "improving"
-      },
-      {
-        "username": "cauediademi",
-        "display_name": "Cauê Diademi",
-        "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/477690166/SSR-H-1iLQMsmT",
-        "total_xp": 8343,
-        "streak": 13,
-        "current_course_id": "DUOLINGO_JA_PT",
-        "total_languages": 2,
-        "primary_language_code": "ja",
-        "dominant_language_xp_share": 0.81,
-        "sustainability_score": 40,
-        "environment_level": 2,
-        "environment_label": "sustainable"
-      },
-      {
-        "username": "liscarrara",
-        "display_name": "Elis carrara",
-        "avatar_url": "//simg-ssl.duolingo.com/avatar/default_2",
-        "total_xp": 194,
-        "streak": 0,
-        "current_course_id": "DUOLINGO_EN_PT",
-        "total_languages": 1,
-        "primary_language_code": "en",
-        "dominant_language_xp_share": 1,
-        "sustainability_score": 2,
-        "environment_level": 0,
-        "environment_label": "industrial"
-      }
-    ]
-  }
-  
+  "items": [
+    {
+      "username": "RafaeruYa",
+      "display_name": "Rafael Yamanishi",
+      "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/5975943/SSR-HQxASHJuGX",
+      "total_xp": 112926,
+      "streak": 352,
+      "current_course_id": "DUOLINGO_EN_PT",
+      "total_languages": 3,
+      "primary_language_code": "fr",
+      "dominant_language_xp_share": 0.72,
+      "sustainability_score": 95,
+      "environment_level": 4,
+      "environment_label": "regenerative"
+    },
+    {
+      "username": "virtofb",
+      "display_name": "Victor Brito",
+      "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/393506258/SSR-rnZFgV869p",
+      "total_xp": 75148,
+      "streak": 629,
+      "current_course_id": "DUOLINGO_DE_EN",
+      "total_languages": 2,
+      "primary_language_code": "fr",
+      "dominant_language_xp_share": 0.95,
+      "sustainability_score": 92,
+      "environment_level": 4,
+      "environment_label": "regenerative"
+    },
+    {
+      "username": "laura",
+      "display_name": "Name",
+      "avatar_url": "//simg-ssl.duolingo.com/avatar/default_2",
+      "total_xp": 61600,
+      "streak": 0,
+      "current_course_id": "DUOLINGO_ES_EN",
+      "total_languages": 4,
+      "primary_language_code": "ar",
+      "dominant_language_xp_share": 0.67,
+      "sustainability_score": 38,
+      "environment_level": 1,
+      "environment_label": "improving"
+    },
+    {
+      "username": "IzaRicheto",
+      "display_name": "Izabelle Richeto",
+      "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/1334932660/SSR-XPcEM7Asyf",
+      "total_xp": 32233,
+      "streak": 0,
+      "current_course_id": "DUOLINGO_JA_PT",
+      "total_languages": 4,
+      "primary_language_code": "it",
+      "dominant_language_xp_share": 0.82,
+      "sustainability_score": 30,
+      "environment_level": 1,
+      "environment_label": "improving"
+    },
+    {
+      "username": "cauediademi",
+      "display_name": "Cauê Diademi",
+      "avatar_url": "//simg-ssl.duolingo.com/ssr-avatars/477690166/SSR-H-1iLQMsmT",
+      "total_xp": 9362,
+      "streak": 17,
+      "current_course_id": "DUOLINGO_JA_PT",
+      "total_languages": 2,
+      "primary_language_code": "ja",
+      "dominant_language_xp_share": 0.83,
+      "sustainability_score": 47,
+      "environment_level": 2,
+      "environment_label": "sustainable"
+    }
+  ]
+}

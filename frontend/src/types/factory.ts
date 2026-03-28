@@ -35,9 +35,12 @@ export interface FactoryLanguage {
   crowns: number
   is_current: boolean
   xp_share: number
-  sector_tier: number
   sort_order: number
   seed_key: string
+  compound_count: number
+  next_compound_at_xp: number
+  xp_to_next_compound: number
+  compound_progress_ratio: number
 }
 
 export interface FactoryResponse {

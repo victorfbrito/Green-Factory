@@ -26,8 +26,8 @@ export interface BlockPlacementResult {
 }
 
 const BLOCK_SIZES: [number, number][] = [
-  [3, 5], [3, 4], [3, 3], [3, 2], [3, 1],
-  [5, 3], [4, 3], [2, 3], [1, 3],
+  [3, 6],[3, 5], [3, 4], [3, 3], [3, 2], [3, 1],
+  [6, 3],[5, 3], [4, 3], [2, 3], [1, 3],
   [2, 2], [2, 1], [1, 2], [1, 1],
 ]
 
@@ -136,7 +136,7 @@ function getPerimeterCells(fp: BlockFootprint): [number, number][] {
 /**
  * Place blocks in a connected graph. Each block connects to a previous block via 1-cell lane.
  * Blocks stay 1 cell apart (including diagonal). Territory expands to fit.
- * blockSizes: compound count per block (from splitCompoundsIntoBlocks).
+ * blockSizes: compound count per block (from groupCompoundsIntoBlocks).
  */
 export function placeBlocks(
   occupied: Set<string>,
