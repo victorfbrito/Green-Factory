@@ -1,5 +1,6 @@
 export { FactoryPage } from './FactoryPage'
 export { FactoryMap } from './FactoryMap'
+export { DEFAULT_FACTORY_VIEW_MODE, type FactoryViewMode } from './factoryViewMode'
 export { WorldLayer } from './WorldLayer'
 export { DistrictLayer } from './DistrictLayer'
 export { UpgradeLayer } from './UpgradeLayer'

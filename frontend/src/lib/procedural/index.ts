@@ -37,6 +37,32 @@ export {
 
 export type { Compound } from './compounds/compoundExtract'
 export type { Block } from './blocks/blockFormation'
-export type { CompoundDrawable } from './buildings/drawables'
+export type { CompoundDrawable, CompoundsToDrawablesContext } from './buildings/drawables'
+export type { CompoundSemantic, CompoundCategory, CompoundDefinition } from '../factory/compoundRegistry'
+export type { CompoundVisualHints } from '../factory/compoundVisuals'
 export type { PathCell } from './navigation/paths'
+
+export {
+  applyGroundSvgArtRotation,
+  autotileRoadNetwork,
+  T_JUNCTION_SVG_ROTATION_BY_MASK,
+  coordsToCellKey,
+  getDeterministicVariant,
+  getRoadMask,
+  maskToTile,
+  parseCellKey,
+  roadDescriptorsToMap,
+  ROAD_MASK_E,
+  ROAD_MASK_N,
+  ROAD_MASK_S,
+  ROAD_MASK_W,
+} from './roads/autotileRoads'
+export type {
+  AutotileRoadInput,
+  AutotileRoadResult,
+  CellKey,
+  GridCellRef,
+  RoadTileDescriptor,
+  RoadTileType,
+} from './roads/autotileRoads'
 export type { CompoundShapeId } from './compounds/compoundShapes'

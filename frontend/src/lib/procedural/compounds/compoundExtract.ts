@@ -2,8 +2,12 @@
  * Extract rectangular Compounds from building cells.
  * Compound = smallest building mass. One rectangle per compound.
  * Rectangles only: 2×1, 2×2, 3×1, 3×2, 3×3, 1×1.
+ *
+ * Semantic identity (knowledge building type) is attached after packing by the frontend
+ * registry; layout does not depend on it.
  */
 
+import type { CompoundSemantic } from '../../factory/compoundRegistry'
 import { cellKey, CELL_SIZE } from '../grid'
 
 export interface Compound {
@@ -17,6 +21,8 @@ export interface Compound {
   h: number
   /** Reserved 2×2 landmark in larger districts */
   isLandmark?: boolean
+  /** Set by assignSemanticsToBlockCompounds after spatial packing */
+  semantic?: CompoundSemantic
 }
 
 const gap = 1

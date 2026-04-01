@@ -71,6 +71,41 @@
   top: 3.1rem;
 }
 
+.factory-map--has-xp-bar .factory-map__view-mode {
+  top: 3.1rem;
+}
+
+.factory-map__view-mode {
+  position: absolute;
+  top: 0.5rem;
+  right: 6.5rem;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #e5e7eb;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+.factory-map__view-mode-label {
+  opacity: 0.85;
+}
+
+.factory-map__view-mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.factory-map__view-mode-option input {
+  cursor: pointer;
+}
+
 .factory-map__world {
   position: absolute;
   inset: 0;

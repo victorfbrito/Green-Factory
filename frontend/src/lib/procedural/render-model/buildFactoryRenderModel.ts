@@ -4,6 +4,7 @@
  */
 
 import type { FactoryResponse } from '../../../types'
+import { assignSemanticsToBlockCompounds, deriveSectorTier } from '../../factory/compoundSelection'
 import { buildSceneLayout } from '../scene/scene'
 import type { DistrictPlacement } from '../scene/types'
 import { getTerritoryBorderCells } from '../territory/territory'
@@ -104,10 +105,14 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     const compounds: Compound[] = []
     const blocks: Block[] = []
 
+    const districtTier = deriveSectorTier(districts[i].language, factory.languages)
+    const isCurrent = districts[i].language.is_current
+
     for (let bi = 0; bi < placement.footprints.length; bi++) {
       const fp = placement.footprints[bi]
       const targetCount = blockSizes[bi] ?? 1
       const blockCompounds = packCompoundsInBlock(fp, targetCount, seedKey, bi, isPrimary && bi === 0)
+      assignSemanticsToBlockCompounds(blockCompounds, seedKey, districtTier, bi)
       compounds.push(...blockCompounds)
       blocks.push({ compounds: blockCompounds })
     }
@@ -115,7 +120,10 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     console.log('[factory] compounds packed:', districts[i].language.language_name, 'total=', compounds.length)
     compoundLists[i] = compounds
     blockLists[i] = blocks
-    compoundDrawables[i] = compoundsToDrawables(compounds, seedKey)
+    compoundDrawables[i] = compoundsToDrawables(compounds, seedKey, {
+      isCurrentDistrict: isCurrent,
+      sectorTier: districtTier,
+    })
     blockLaneCellsByDistrict[i] = placement.laneCells
 
     for (const k of getCompoundOccupancy(compounds)) {

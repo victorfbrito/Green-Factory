@@ -1,10 +1,17 @@
 import type { DistrictPlacement } from '../../lib/procedural'
+import type { FactoryViewMode } from './factoryViewMode'
 
 interface DistrictLayerProps {
   districts: DistrictPlacement[]
+  viewMode: FactoryViewMode
 }
 
-export function DistrictLayer({ districts }: DistrictLayerProps) {
+/** District ring outlines (x-ray only); live mode has no SVG overlays. */
+export function DistrictLayer({ districts, viewMode }: DistrictLayerProps) {
+  if (viewMode === 'live') {
+    return null
+  }
+
   return (
     <div className="factory-map__districts">
       {districts.map((d) => {

@@ -115,7 +115,7 @@ export function buildServiceLanes(
   paths: PathCell[][],
   districtEntrances: { cx: number; cy: number }[],
   districtIndices: number[],
-  districtAnchors: { cx: number; cy: number }[],
+  _districtAnchors: { cx: number; cy: number }[],
   blockLaneCellsByDistrict: { cx: number; cy: number }[][]
 ): PathCell[] {
   const roadCells = new Set<string>()
