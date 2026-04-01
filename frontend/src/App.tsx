@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  Navigate,
+  useParams,
+} from 'react-router-dom'
 import { FactoryPage } from './features/factory'
 import { getTopFactories } from './api'
 import type { TopFactoryItem } from './types'
 import './App.css'
+
+/** Old SPA path; API still uses /users/... — redirect so the address bar matches /campus/:username */
+function RedirectUsersToCampus() {
+  const { username } = useParams<{ username: string }>()
+  if (!username) return <Navigate to="/" replace />
+  return <Navigate to={`/campus/${encodeURIComponent(username)}`} replace />
+}
 
 function Home() {
   const navigate = useNavigate()
@@ -30,7 +45,7 @@ function Home() {
           const form = e.currentTarget
           const input = form.querySelector<HTMLInputElement>('input[name="username"]')
           const value = input?.value.trim()
-          if (value) navigate(`/users/${encodeURIComponent(value)}`)
+          if (value) navigate(`/campus/${encodeURIComponent(value)}`)
         }}
         style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}
       >
@@ -55,7 +70,7 @@ function Home() {
             {topFactories.map((item) => (
               <li key={item.username} style={{ marginBottom: '0.5rem' }}>
                 <Link
-                  to={`/users/${encodeURIComponent(item.username)}`}
+                  to={`/campus/${encodeURIComponent(item.username)}`}
                   style={{
                     display: 'block',
                     padding: '0.5rem 0.75rem',
@@ -89,7 +104,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/users/:username" element={<FactoryPage />} />
+        {/* Legacy client routes → /campus; do not use /users/* for new links (Vite proxies /users to API) */}
+        <Route path="/users" element={<Navigate to="/" replace />} />
+        <Route path="/users/:username" element={<RedirectUsersToCampus />} />
+        <Route path="/campus/:username" element={<FactoryPage />} />
       </Routes>
     </BrowserRouter>
   )
