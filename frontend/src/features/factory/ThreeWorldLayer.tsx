@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
 import type { DistrictPlacement, CompoundDrawable, PathCell, Block } from '../../lib/procedural'
@@ -23,6 +23,7 @@ interface ThreeWorldLayerProps {
   serviceLaneCells: PathCell[]
   /** live = SVG ground tiles for roads/lanes; x-ray = solid debug tiles (previous behavior). */
   viewMode: FactoryViewMode
+  topDownView: boolean
 }
 
 export function ThreeWorldLayer({
@@ -32,9 +33,11 @@ export function ThreeWorldLayer({
   paths,
   serviceLaneCells,
   viewMode,
+  topDownView,
 }: ThreeWorldLayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [topDownView, setTopDownView] = useState(true)
+  const cameraTargetRef = useRef(new THREE.Vector3(0, 0, 0))
+  const cameraZoomRef = useRef(1.1)
 
   useEffect(() => {
     const container = containerRef.current
@@ -50,6 +53,9 @@ export function ThreeWorldLayer({
 
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    renderer.domElement.style.display = 'block'
+    renderer.domElement.style.width = '100%'
+    renderer.domElement.style.height = '100%'
     container.innerHTML = ''
     container.appendChild(renderer.domElement)
 
@@ -65,17 +71,17 @@ export function ThreeWorldLayer({
       camera.bottom = -frustumSize / 2
       camera.updateProjectionMatrix()
 
-      renderer.setSize(width, height, false)
+      renderer.setSize(width, height)
     }
 
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 5000)
-    const target = new THREE.Vector3(0, 0, 0)
+    const target = cameraTargetRef.current.clone()
     const offset = topDownView
       ? new THREE.Vector3(0, 1200, 0)
       : new THREE.Vector3(CAMERA_X, CAMERA_Y, CAMERA_Z)
     camera.position.copy(target.clone().add(offset))
     camera.lookAt(target)
-    camera.zoom = 1.1
+    camera.zoom = cameraZoomRef.current
     camera.updateProjectionMatrix()
 
     // Soft lighting to avoid harsh flat/pixel-looking edges.
@@ -375,6 +381,7 @@ export function ThreeWorldLayer({
       e.preventDefault()
       const delta = e.deltaY > 0 ? -0.12 : 0.12
       camera.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom * (1 + delta)))
+      cameraZoomRef.current = camera.zoom
       camera.updateProjectionMatrix()
       render()
     }
@@ -386,6 +393,7 @@ export function ThreeWorldLayer({
     const applyCameraFromTarget = () => {
       camera.position.copy(target.clone().add(offset))
       camera.lookAt(target)
+      cameraTargetRef.current.copy(target)
     }
 
     const onPointerDown = (e: PointerEvent) => {
@@ -465,6 +473,8 @@ export function ThreeWorldLayer({
 
     return () => {
       cancelled = true
+      cameraTargetRef.current.copy(target)
+      cameraZoomRef.current = camera.zoom
       disposeLiveRoads?.()
       container.removeEventListener('wheel', onWheel)
       container.removeEventListener('pointerdown', onPointerDown)
@@ -484,16 +494,6 @@ export function ThreeWorldLayer({
   return (
     <div className="factory-map__three-wrapper">
       <div ref={containerRef} className="factory-map__three" />
-      <div className="factory-map__debug">
-        <label>
-          <input
-            type="checkbox"
-            checked={topDownView}
-            onChange={(e) => setTopDownView(e.target.checked)}
-          />
-          View from above
-        </label>
-      </div>
     </div>
   )
 }

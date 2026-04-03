@@ -4,7 +4,6 @@ import { openFactory } from '../../api'
 import { buildFactoryRenderModel } from '../../lib/procedural'
 import type { FactoryResponse } from '../../types'
 import { FactoryMap } from './FactoryMap'
-import { FactorySidebar } from './FactorySidebar'
 import { FactoryDebugCard } from './FactoryDebugCard'
 
 export function FactoryPage() {
@@ -61,20 +60,13 @@ export function FactoryPage() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
-        padding: '1.5rem',
-        alignItems: 'flex-start',
-      }}
-    >
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div className="factory-page">
+      <div className="factory-page__map">
         <FactoryMap factory={factory} renderModel={renderModel} />
-        <FactorySidebar factory={factory} />
       </div>
-      <FactoryDebugCard factory={factory} renderModel={renderModel} />
+      <div className="factory-page__debug">
+        <FactoryDebugCard factory={factory} renderModel={renderModel} />
+      </div>
     </div>
   )
 }
