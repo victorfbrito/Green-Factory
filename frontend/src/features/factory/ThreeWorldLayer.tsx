@@ -6,7 +6,7 @@ import { autotileRoadNetwork, cellKey, CELL_SIZE, GRID_SIZE, MAP_SIZE } from '..
 import { getLanguageTheme } from '../../lib/theme/duolingoLanguageThemes'
 import type { FactoryViewMode } from './factoryViewMode'
 import { grassBaseTextureUrl, groundRoadTextureUrl } from './groundRoadAssets'
-import { PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
+import { PATH_COLOR } from './constants'
 
 // True isometric camera direction.
 export const CAMERA_X = 900
@@ -224,12 +224,6 @@ export function ThreeWorldLayer({
       roughness: 0.9,
       metalness: 0.05,
     })
-    const serviceLaneMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(SERVICE_LANE_COLOR),
-      roughness: 0.9,
-      metalness: 0.05,
-    })
-
     let cancelled = false
     let disposeLiveRoads: (() => void) | undefined
 
@@ -242,15 +236,6 @@ export function ThreeWorldLayer({
         const roadMesh = new THREE.Mesh(pathGeometry, pathMaterial)
         roadMesh.position.set(worldX, pathHeight / 2 + 0.05, worldZ)
         scene.add(roadMesh)
-      }
-      for (const path of paths) {
-        for (const cell of path) {
-          const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
-          const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
-          const laneMesh = new THREE.Mesh(pathGeometry, serviceLaneMaterial)
-          laneMesh.position.set(worldX, pathHeight / 2 + 0.06, worldZ)
-          scene.add(laneMesh)
-        }
       }
     }
 
@@ -280,11 +265,10 @@ export function ThreeWorldLayer({
       const LIVE_GRASS_Y = 0
 
       const roadCells = new Set(serviceLaneCells.map((c) => cellKey(c.cx, c.cy)))
-      const serviceLaneCellKeys = new Set(paths.flat().map((c) => cellKey(c.cx, c.cy)))
       const seedKey = districts[0]?.language?.seed_key ?? 'factory'
       const { descriptors } = autotileRoadNetwork({
         roadCells,
-        serviceLaneCells: serviceLaneCellKeys,
+        serviceLaneCells: new Set(),
         seedKey,
       })
 

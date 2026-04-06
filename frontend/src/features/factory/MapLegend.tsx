@@ -1,6 +1,6 @@
 import type { DistrictPlacement } from '../../lib/procedural'
 import { getLanguageTheme } from '../../lib/theme/duolingoLanguageThemes'
-import { PATH_COLOR, SERVICE_LANE_COLOR } from './constants'
+import { PATH_COLOR } from './constants'
 
 interface MapLegendProps {
   districts: DistrictPlacement[]
@@ -24,13 +24,6 @@ export function MapLegend({ districts }: MapLegendProps) {
           style={{ backgroundColor: PATH_COLOR }}
         />
         <span className="factory-map__legend-label">Road</span>
-      </div>
-      <div className="factory-map__legend-item">
-        <span
-          className="factory-map__legend-swatch"
-          style={{ backgroundColor: SERVICE_LANE_COLOR }}
-        />
-        <span className="factory-map__legend-label">Lane</span>
       </div>
       <div className="factory-map__legend-item">
         <span
