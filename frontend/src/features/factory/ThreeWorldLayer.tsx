@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import treeUrl from '../../assets/tree.svg'
+import carLeftUrl from '../../assets/vehicles/car/car-left.svg'
+import carRightUrl from '../../assets/vehicles/car/car-right.svg'
 
 import type { DistrictPlacement, CompoundDrawable, PathCell, Block } from '../../lib/procedural'
 import { autotileRoadNetwork, cellKey, CELL_SIZE, GRID_SIZE, MAP_SIZE } from '../../lib/procedural'
@@ -15,6 +17,98 @@ export const CAMERA_Y = 900
 export const CAMERA_Z = 900
 
 const BLOCK_BORDER_COLOR = '#f97316'
+const ROAD_DIRS: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]]
+
+interface CarSpriteState {
+  mesh: THREE.Mesh
+  currentKey: string
+  previousKey: string | null
+  nextKey: string
+  progress: number
+  speedCellsPerSecond: number
+  stepCount: number
+}
+
+function hashString(input: string): number {
+  let hash = 0
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0
+  }
+  return hash
+}
+
+function parseCellKey(key: string): [number, number] {
+  const [cx, cy] = key.split(',').map(Number)
+  return [cx, cy]
+}
+
+function getConnectedRoadComponents(cells: PathCell[]): string[][] {
+  const roadSet = new Set(cells.map((cell) => cellKey(cell.cx, cell.cy)))
+  const visited = new Set<string>()
+  const components: string[][] = []
+
+  for (const key of roadSet) {
+    if (visited.has(key)) continue
+    const component: string[] = []
+    const queue = [key]
+    visited.add(key)
+
+    while (queue.length > 0) {
+      const current = queue.shift()!
+      component.push(current)
+      const [cx, cy] = parseCellKey(current)
+      for (const [dx, dy] of ROAD_DIRS) {
+        const neighborKey = cellKey(cx + dx, cy + dy)
+        if (!roadSet.has(neighborKey) || visited.has(neighborKey)) continue
+        visited.add(neighborKey)
+        queue.push(neighborKey)
+      }
+    }
+
+    component.sort()
+    components.push(component)
+  }
+
+  components.sort((a, b) => b.length - a.length)
+  return components
+}
+
+function getRoadNeighbors(key: string, roadSet: Set<string>): string[] {
+  const [cx, cy] = parseCellKey(key)
+  return ROAD_DIRS
+    .map(([dx, dy]) => cellKey(cx + dx, cy + dy))
+    .filter((neighborKey) => roadSet.has(neighborKey))
+    .sort()
+}
+
+function getRoadWorldPosition(key: string, centerOffset: number): THREE.Vector3 {
+  const [cx, cy] = parseCellKey(key)
+  return new THREE.Vector3(
+    cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset,
+    0,
+    cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+  )
+}
+
+function chooseNextRoadNeighbor(
+  currentKey: string,
+  previousKey: string | null,
+  roadSet: Set<string>,
+  variantSeed: string
+): string {
+  const neighbors = getRoadNeighbors(currentKey, roadSet)
+  const forwardOptions = neighbors.filter((neighborKey) => neighborKey !== previousKey)
+  const options = forwardOptions.length > 0 ? forwardOptions : neighbors
+  if (options.length === 0) return currentKey
+  const nextIndex = hashString(variantSeed) % options.length
+  return options[nextIndex]!
+}
+
+function getRoadAxis(currentKey: string, nextKey: string): 'x' | 'z' {
+  const [currentX, currentY] = parseCellKey(currentKey)
+  const [nextX, nextY] = parseCellKey(nextKey)
+  return currentX !== nextX ? 'x' : currentY !== nextY ? 'z' : 'x'
+}
 
 interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
@@ -230,6 +324,8 @@ export function ThreeWorldLayer({
     let cancelled = false
     let disposeLiveRoads: (() => void) | undefined
     let disposeTrees: (() => void) | undefined
+    let disposeCars: (() => void) | undefined
+    let animationFrameId = 0
 
     const render = () => renderer.render(scene, camera)
 
@@ -302,6 +398,129 @@ export function ThreeWorldLayer({
         treeGeometry.dispose()
         treeMaterial.dispose()
         treeTexture.dispose()
+      }
+    }
+
+    const addCars = async () => {
+      if (serviceLaneCells.length === 0) return
+
+      const roadSet = new Set(serviceLaneCells.map((cell) => cellKey(cell.cx, cell.cy)))
+      const components = getConnectedRoadComponents(serviceLaneCells).filter((component) => component.length > 1)
+      if (components.length === 0) return
+
+      const [carLeftTexture, carRightTexture] = await Promise.all([
+        loadSvgTexture(carLeftUrl),
+        loadSvgTexture(carRightUrl),
+      ])
+      if (cancelled) {
+        carLeftTexture.dispose()
+        carRightTexture.dispose()
+        return
+      }
+      carLeftTexture.flipY = true
+      carLeftTexture.needsUpdate = true
+      carRightTexture.flipY = true
+      carRightTexture.needsUpdate = true
+
+      const carSize = CELL_SIZE * 1.1
+      const carWidth = carSize
+      const carHeight = carSize
+      const carGeometry = new THREE.PlaneGeometry(carWidth, carHeight)
+      const carLeftMaterial = new THREE.MeshStandardMaterial({
+        map: carLeftTexture,
+        transparent: true,
+        alphaTest: 0.15,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      })
+      const carRightMaterial = new THREE.MeshStandardMaterial({
+        map: carRightTexture,
+        transparent: true,
+        alphaTest: 0.15,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      })
+
+      const maxCars = Math.min(6, components.length)
+      const carStates: CarSpriteState[] = []
+
+      for (let index = 0; index < maxCars; index++) {
+        const component = components[index]!
+        const startKey = component[hashString(`car:start:${index}:${component[0]}`) % component.length]!
+        const nextKey = chooseNextRoadNeighbor(startKey, null, roadSet, `car:next:${index}:0:${startKey}`)
+        const initialAxis = getRoadAxis(startKey, nextKey)
+        const mesh = new THREE.Mesh(
+          carGeometry,
+          initialAxis === 'x' ? carLeftMaterial : carRightMaterial
+        )
+        mesh.rotation.y = Math.PI / 4
+        scene.add(mesh)
+
+        carStates.push({
+          mesh,
+          currentKey: startKey,
+          previousKey: null,
+          nextKey,
+          progress: (hashString(`car:offset:${index}:${startKey}`) % 1000) / 1000,
+          speedCellsPerSecond: 1.15 + (hashString(`car:speed:${index}:${startKey}`) % 60) / 100,
+          stepCount: 0,
+        })
+      }
+
+      const fromPosition = new THREE.Vector3()
+      const toPosition = new THREE.Vector3()
+      const currentPosition = new THREE.Vector3()
+
+      const updateCars = (deltaSeconds: number) => {
+        for (const car of carStates) {
+          let progress = car.progress + deltaSeconds * car.speedCellsPerSecond
+          while (progress >= 1) {
+            progress -= 1
+            car.previousKey = car.currentKey
+            car.currentKey = car.nextKey
+            car.stepCount += 1
+            car.nextKey = chooseNextRoadNeighbor(
+              car.currentKey,
+              car.previousKey,
+              roadSet,
+              `car:next:${car.stepCount}:${car.currentKey}:${car.previousKey ?? 'none'}`
+            )
+          }
+          car.progress = progress
+
+          fromPosition.copy(getRoadWorldPosition(car.currentKey, centerOffset))
+          toPosition.copy(getRoadWorldPosition(car.nextKey, centerOffset))
+          currentPosition.lerpVectors(fromPosition, toPosition, car.progress)
+          car.mesh.material = getRoadAxis(car.currentKey, car.nextKey) === 'x'
+            ? carLeftMaterial
+            : carRightMaterial
+          car.mesh.position.set(currentPosition.x, carHeight / 2 + 0.03, currentPosition.z)
+        }
+      }
+
+      let lastFrameTime = performance.now()
+      const animateCars = (now: number) => {
+        if (cancelled) return
+        const deltaSeconds = Math.min(0.05, (now - lastFrameTime) / 1000)
+        lastFrameTime = now
+        updateCars(deltaSeconds)
+        render()
+        animationFrameId = window.requestAnimationFrame(animateCars)
+      }
+
+      updateCars(0)
+      animationFrameId = window.requestAnimationFrame(animateCars)
+
+      disposeCars = () => {
+        window.cancelAnimationFrame(animationFrameId)
+        for (const car of carStates) {
+          scene.remove(car.mesh)
+        }
+        carGeometry.dispose()
+        carLeftMaterial.dispose()
+        carRightMaterial.dispose()
+        carLeftTexture.dispose()
+        carRightTexture.dispose()
       }
     }
 
@@ -438,6 +657,19 @@ export function ThreeWorldLayer({
         if (!cancelled) render()
       })
 
+    void addCars()
+      .then(() => {
+        if (cancelled) {
+          disposeCars?.()
+          return
+        }
+        render()
+      })
+      .catch((err) => {
+        console.error('Car layer: texture load failed', err)
+        if (!cancelled) render()
+      })
+
     const MIN_ZOOM = 0.15
     const MAX_ZOOM = 8
     const frustumSize = MAP_SIZE * 1.15
@@ -542,6 +774,7 @@ export function ThreeWorldLayer({
       cameraZoomRef.current = camera.zoom
       disposeLiveRoads?.()
       disposeTrees?.()
+      disposeCars?.()
       container.removeEventListener('wheel', onWheel)
       container.removeEventListener('pointerdown', onPointerDown)
       container.removeEventListener('pointermove', onPointerMove)
