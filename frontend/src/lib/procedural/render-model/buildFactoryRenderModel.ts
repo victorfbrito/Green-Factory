@@ -13,7 +13,7 @@ import { placeBlocks, getBlockCellsFromFootprints } from '../blocks/blockPlaceme
 import { packCompoundsInBlock } from '../compounds/compoundPacking'
 import { compoundsToDrawables } from '../buildings/drawables'
 import { cellKey, GRID_SIZE, worldToCell } from '../grid'
-import { compoundToWorld, type Compound } from '../compounds/compoundExtract'
+import { compoundToWorld, getCompoundCells, type Compound } from '../compounds/compoundExtract'
 import type { Block } from '../blocks/blockFormation'
 import type { CompoundDrawable } from '../buildings/drawables'
 import type { PathCell } from '../navigation/paths'
@@ -26,6 +26,7 @@ export interface FactoryRenderModel {
   districts: DistrictPlacement[]
   compoundDrawables: CompoundDrawable[][]
   nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][]
+  treeCells: PathCell[]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
@@ -70,6 +71,38 @@ function getRoadCellsAroundFootprints(footprints: BlockFootprint[]): PathCell[] 
   return roadCells
 }
 
+function getInteriorFreeCells(
+  footprints: BlockFootprint[],
+  compounds: Compound[],
+  nextCompounds: Compound[]
+): PathCell[] {
+  const occupied = new Set<string>()
+  const freeCells: PathCell[] = []
+  const seen = new Set<string>()
+
+  for (const compound of compounds) {
+    for (const key of getCompoundCells(compound)) occupied.add(key)
+  }
+  for (const compound of nextCompounds) {
+    for (const key of getCompoundCells(compound)) occupied.add(key)
+  }
+
+  for (const footprint of footprints) {
+    for (let dx = 0; dx < footprint.w; dx++) {
+      for (let dy = 0; dy < footprint.h; dy++) {
+        const cx = footprint.cx + dx
+        const cy = footprint.cy + dy
+        const key = cellKey(cx, cy)
+        if (occupied.has(key) || seen.has(key)) continue
+        seen.add(key)
+        freeCells.push({ cx, cy })
+      }
+    }
+  }
+
+  return freeCells
+}
+
 /**
  * Full pipeline: FactoryResponse => FactoryRenderModel.
  * Block-first: place blocks as connected graph, pack compounds inside, then paths and service lanes.
@@ -85,6 +118,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       districts: [],
       compoundDrawables: [],
       nextCompoundDrawables: [],
+      treeCells: [],
       blockLists: [],
       paths: [],
       serviceLaneCells: [],
@@ -128,6 +162,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
   const compoundDrawables: CompoundDrawable[][] = districts.map(() => [])
   const nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][] = districts.map(() => [])
   const roadCellsByDistrict: PathCell[][] = districts.map(() => [])
+  const treeCellsByDistrict: PathCell[][] = districts.map(() => [])
 
   for (const i of layoutOrder) {
     const blockSizes = blockSizesByDistrict[i]
@@ -145,6 +180,9 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
 
     const compounds: Compound[] = []
     const blocks: Block[] = []
+    const nextCompounds: Compound[] = []
+    const completeFootprints: BlockFootprint[] = []
+    const completeBlockCompounds: Compound[] = []
 
     const districtTier = deriveSectorTier(districts[i].language, factory.languages)
     const isCurrent = districts[i].language.is_current
@@ -153,17 +191,23 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       const fp = placement.footprints[bi]
       const targetCount = blockSizes[bi] ?? 0
       const previewCount = previewBlockSizes[bi] ?? targetCount
+      const plannedCapacity = plannedBlockCapacities[bi] ?? 0
       const blockCompounds = packCompoundsInBlock(fp, targetCount, seedKey, bi, isPrimary && bi === 0)
       assignSemanticsToBlockCompounds(blockCompounds, seedKey, districtTier, bi)
       compounds.push(...blockCompounds)
       if (blockCompounds.length > 0) {
         blocks.push({ compounds: blockCompounds })
       }
+      if (targetCount >= plannedCapacity && plannedCapacity > 0) {
+        completeFootprints.push(fp)
+        completeBlockCompounds.push(...blockCompounds)
+      }
 
       if (previewCount > targetCount) {
         const previewCompounds = packCompoundsInBlock(fp, previewCount, seedKey, bi, isPrimary && bi === 0)
         const nextCompound = previewCompounds[targetCount]
         if (nextCompound) {
+          nextCompounds.push(nextCompound)
           nextCompoundDrawables[i].push(compoundToWorld(nextCompound))
         }
       }
@@ -176,11 +220,13 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       sectorTier: districtTier,
     })
     roadCellsByDistrict[i] = getRoadCellsAroundFootprints(placement.footprints)
+    treeCellsByDistrict[i] = getInteriorFreeCells(completeFootprints, completeBlockCompounds, [])
   }
 
   // H. Assembly
   const borderCellsByDistrict = territoryByIndex.map((t) => getTerritoryBorderCells(t))
   const roadCells = roadCellsByDistrict.flat()
+  const treeCells = treeCellsByDistrict.flat()
 
   return {
     worldTheme,
@@ -188,6 +234,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     districts,
     compoundDrawables,
     nextCompoundDrawables,
+    treeCells,
     blockLists,
     paths: [],
     serviceLaneCells: roadCells,

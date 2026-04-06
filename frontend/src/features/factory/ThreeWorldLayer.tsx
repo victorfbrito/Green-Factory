@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import treeUrl from '../../assets/tree.svg'
 
 import type { DistrictPlacement, CompoundDrawable, PathCell, Block } from '../../lib/procedural'
 import { autotileRoadNetwork, cellKey, CELL_SIZE, GRID_SIZE, MAP_SIZE } from '../../lib/procedural'
@@ -19,6 +20,7 @@ interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
   compoundDrawables: CompoundDrawable[][]
   nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][]
+  treeCells: PathCell[]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
@@ -31,6 +33,7 @@ export function ThreeWorldLayer({
   districts,
   compoundDrawables,
   nextCompoundDrawables,
+  treeCells,
   blockLists,
   paths,
   serviceLaneCells,
@@ -226,6 +229,7 @@ export function ThreeWorldLayer({
     })
     let cancelled = false
     let disposeLiveRoads: (() => void) | undefined
+    let disposeTrees: (() => void) | undefined
 
     const render = () => renderer.render(scene, camera)
 
@@ -259,6 +263,47 @@ export function ThreeWorldLayer({
           reject
         )
       })
+
+    const addTrees = async () => {
+      const treeTexture = await loadSvgTexture(treeUrl)
+      if (cancelled) {
+        treeTexture.dispose()
+        return
+      }
+      treeTexture.flipY = true
+      treeTexture.needsUpdate = true
+
+      const treeWidth = CELL_SIZE * 1.3
+      const treeHeight = CELL_SIZE * 1.9
+      const treeGeometry = new THREE.PlaneGeometry(treeWidth, treeHeight)
+      const treeMaterial = new THREE.MeshStandardMaterial({
+        map: treeTexture,
+        transparent: true,
+        alphaTest: 0.15,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      })
+      const treeMeshes: THREE.Mesh[] = []
+
+      for (const cell of treeCells) {
+        const mesh = new THREE.Mesh(treeGeometry, treeMaterial)
+        const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+        const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+        mesh.position.set(worldX, treeHeight / 2, worldZ)
+        mesh.rotation.y = Math.PI / 4
+        scene.add(mesh)
+        treeMeshes.push(mesh)
+      }
+
+      disposeTrees = () => {
+        for (const mesh of treeMeshes) {
+          scene.remove(mesh)
+        }
+        treeGeometry.dispose()
+        treeMaterial.dispose()
+        treeTexture.dispose()
+      }
+    }
 
     const addRoadsLive = async () => {
       const LIVE_ROAD_Y = 0.1
@@ -380,6 +425,19 @@ export function ThreeWorldLayer({
         })
     }
 
+    void addTrees()
+      .then(() => {
+        if (cancelled) {
+          disposeTrees?.()
+          return
+        }
+        render()
+      })
+      .catch((err) => {
+        console.error('Tree layer: texture load failed', err)
+        if (!cancelled) render()
+      })
+
     const MIN_ZOOM = 0.15
     const MAX_ZOOM = 8
     const frustumSize = MAP_SIZE * 1.15
@@ -483,6 +541,7 @@ export function ThreeWorldLayer({
       cameraTargetRef.current.copy(target)
       cameraZoomRef.current = camera.zoom
       disposeLiveRoads?.()
+      disposeTrees?.()
       container.removeEventListener('wheel', onWheel)
       container.removeEventListener('pointerdown', onPointerDown)
       container.removeEventListener('pointermove', onPointerMove)
@@ -496,7 +555,7 @@ export function ThreeWorldLayer({
         container.removeChild(renderer.domElement)
       }
     }
-  }, [districts, compoundDrawables, nextCompoundDrawables, blockLists, paths, serviceLaneCells, topDownView, viewMode])
+  }, [districts, compoundDrawables, nextCompoundDrawables, treeCells, blockLists, paths, serviceLaneCells, topDownView, viewMode])
 
   return (
     <div className="factory-map__three-wrapper">

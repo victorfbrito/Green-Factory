@@ -32,7 +32,7 @@ export function FactoryMap({
 }: FactoryMapProps) {
   const [viewMode, setViewMode] = useState<FactoryViewMode>(DEFAULT_FACTORY_VIEW_MODE)
   const [topDownView, setTopDownView] = useState(true)
-  const { worldTheme, districts, compoundDrawables, nextCompoundDrawables, blockLists, paths, serviceLaneCells } = renderModel
+  const { worldTheme, districts, compoundDrawables, nextCompoundDrawables, treeCells, blockLists, paths, serviceLaneCells } = renderModel
   const hasXpBar = factory.languages.length > 0
   return (
     <div
@@ -82,6 +82,7 @@ export function FactoryMap({
         districts={districts}
         compoundDrawables={compoundDrawables}
         nextCompoundDrawables={nextCompoundDrawables}
+        treeCells={treeCells}
         blockLists={blockLists}
         paths={paths}
         serviceLaneCells={serviceLaneCells}
