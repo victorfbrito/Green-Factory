@@ -213,21 +213,21 @@ export function ThreeWorldLayer({
     const render = () => renderer.render(scene, camera)
 
     const addRoadsXRay = () => {
+      for (const cell of serviceLaneCells) {
+        const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+        const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
+        const roadMesh = new THREE.Mesh(pathGeometry, pathMaterial)
+        roadMesh.position.set(worldX, pathHeight / 2 + 0.05, worldZ)
+        scene.add(roadMesh)
+      }
       for (const path of paths) {
         for (const cell of path) {
           const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
           const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
-          const pathMesh = new THREE.Mesh(pathGeometry, pathMaterial)
-          pathMesh.position.set(worldX, pathHeight / 2 + 0.05, worldZ)
-          scene.add(pathMesh)
+          const laneMesh = new THREE.Mesh(pathGeometry, serviceLaneMaterial)
+          laneMesh.position.set(worldX, pathHeight / 2 + 0.06, worldZ)
+          scene.add(laneMesh)
         }
-      }
-      for (const cell of serviceLaneCells) {
-        const worldX = cell.cx * CELL_SIZE + CELL_SIZE / 2 - centerOffset
-        const worldZ = cell.cy * CELL_SIZE + CELL_SIZE / 2 - centerOffset
-        const laneMesh = new THREE.Mesh(pathGeometry, serviceLaneMaterial)
-        laneMesh.position.set(worldX, pathHeight / 2 + 0.06, worldZ)
-        scene.add(laneMesh)
       }
     }
 
@@ -256,8 +256,8 @@ export function ThreeWorldLayer({
       const LIVE_ROAD_Y = 0.1
       const LIVE_GRASS_Y = 0
 
-      const roadCells = new Set(paths.flat().map((c) => cellKey(c.cx, c.cy)))
-      const serviceLaneCellKeys = new Set(serviceLaneCells.map((c) => cellKey(c.cx, c.cy)))
+      const roadCells = new Set(serviceLaneCells.map((c) => cellKey(c.cx, c.cy)))
+      const serviceLaneCellKeys = new Set(paths.flat().map((c) => cellKey(c.cx, c.cy)))
       const seedKey = districts[0]?.language?.seed_key ?? 'factory'
       const { descriptors } = autotileRoadNetwork({
         roadCells,

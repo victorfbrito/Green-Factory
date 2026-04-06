@@ -23,14 +23,14 @@ export function MapLegend({ districts }: MapLegendProps) {
           className="factory-map__legend-swatch"
           style={{ backgroundColor: PATH_COLOR }}
         />
-        <span className="factory-map__legend-label">Path</span>
+        <span className="factory-map__legend-label">Road</span>
       </div>
       <div className="factory-map__legend-item">
         <span
           className="factory-map__legend-swatch"
           style={{ backgroundColor: SERVICE_LANE_COLOR }}
         />
-        <span className="factory-map__legend-label">Service lane</span>
+        <span className="factory-map__legend-label">Lane</span>
       </div>
     </div>
   )
