@@ -12,12 +12,27 @@ import { FactorySidebar } from './FactorySidebar'
 interface FactoryMapProps {
   factory: FactoryResponse
   renderModel: FactoryRenderModel
+  xpStepAmount: number
+  xpDelta: number
+  simulationTargetName: string | null
+  onXpStepAmountChange: (amount: number) => void
+  onAddXp: () => void
+  onRemoveXp: () => void
 }
 
-export function FactoryMap({ factory, renderModel }: FactoryMapProps) {
+export function FactoryMap({
+  factory,
+  renderModel,
+  xpStepAmount,
+  xpDelta,
+  simulationTargetName,
+  onXpStepAmountChange,
+  onAddXp,
+  onRemoveXp,
+}: FactoryMapProps) {
   const [viewMode, setViewMode] = useState<FactoryViewMode>(DEFAULT_FACTORY_VIEW_MODE)
   const [topDownView, setTopDownView] = useState(true)
-  const { worldTheme, districts, compoundDrawables, blockLists, paths, serviceLaneCells } = renderModel
+  const { worldTheme, districts, compoundDrawables, nextCompoundDrawables, blockLists, paths, serviceLaneCells } = renderModel
   const hasXpBar = factory.languages.length > 0
   return (
     <div
@@ -66,6 +81,7 @@ export function FactoryMap({ factory, renderModel }: FactoryMapProps) {
       <ThreeWorldLayer
         districts={districts}
         compoundDrawables={compoundDrawables}
+        nextCompoundDrawables={nextCompoundDrawables}
         blockLists={blockLists}
         paths={paths}
         serviceLaneCells={serviceLaneCells}
@@ -74,7 +90,15 @@ export function FactoryMap({ factory, renderModel }: FactoryMapProps) {
       />
       <DistrictLayer districts={districts} viewMode={viewMode} />
       <MapLegend districts={districts} />
-      <FactorySidebar factory={factory} />
+      <FactorySidebar
+        factory={factory}
+        xpStepAmount={xpStepAmount}
+        xpDelta={xpDelta}
+        simulationTargetName={simulationTargetName}
+        onXpStepAmountChange={onXpStepAmountChange}
+        onAddXp={onAddXp}
+        onRemoveXp={onRemoveXp}
+      />
     </div>
   )
 }

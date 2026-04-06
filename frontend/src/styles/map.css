@@ -267,6 +267,31 @@
   font-size: 0.8rem;
 }
 
+.factory-sidebar__simulator {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.factory-sidebar__simulator-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.factory-sidebar__simulator-controls input {
+  width: 5.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+}
+
+.factory-sidebar__simulator-controls button {
+  padding: 0.45rem 0.7rem;
+}
+
 @media (max-width: 900px) {
   .factory-page__map,
   .factory-map {

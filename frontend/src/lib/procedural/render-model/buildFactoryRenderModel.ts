@@ -8,16 +8,15 @@ import { assignSemanticsToBlockCompounds, deriveSectorTier } from '../../factory
 import { buildSceneLayout } from '../scene/scene'
 import type { DistrictPlacement } from '../scene/types'
 import { getTerritoryBorderCells } from '../territory/territory'
-import { groupCompoundsIntoBlocks } from '../blocks/blockGrouping'
+import { getPlannedBlockCapacities, groupCompoundsIntoBlocks } from '../blocks/blockGrouping'
 import { placeBlocks, getBlockCellsFromFootprints } from '../blocks/blockPlacement'
 import { packCompoundsInBlock } from '../compounds/compoundPacking'
-import { getCompoundOccupancy } from '../buildings/occupancy'
 import { compoundsToDrawables } from '../buildings/drawables'
 import { buildNavGrid } from '../navigation/navGrid'
 import { buildPaths } from '../navigation/paths'
 import { buildServiceLanes } from '../navigation/serviceLanes'
 import { cellKey, worldToCell } from '../grid'
-import type { Compound } from '../compounds/compoundExtract'
+import { compoundToWorld, type Compound } from '../compounds/compoundExtract'
 import type { Block } from '../blocks/blockFormation'
 import type { CompoundDrawable } from '../buildings/drawables'
 import type { PathCell } from '../navigation/paths'
@@ -28,6 +27,7 @@ export interface FactoryRenderModel {
   mapSize: number
   districts: DistrictPlacement[]
   compoundDrawables: CompoundDrawable[][]
+  nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
@@ -51,6 +51,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       mapSize,
       districts: [],
       compoundDrawables: [],
+      nextCompoundDrawables: [],
       blockLists: [],
       paths: [],
       serviceLaneCells: [],
@@ -67,10 +68,16 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
   const blockSizesByDistrict = compoundCounts.map((count, i) =>
     groupCompoundsIntoBlocks(count, districts[i].language.seed_key)
   )
+  const previewBlockSizesByDistrict = compoundCounts.map((count, i) =>
+    groupCompoundsIntoBlocks(count + 1, districts[i].language.seed_key)
+  )
+  const plannedBlockCapacitiesByDistrict = compoundCounts.map((count) =>
+    getPlannedBlockCapacities(count)
+  )
 
   // Occupied = anchors + (territory + 1-cell buffer) from previous districts. Districts don't touch (incl. diagonal).
   const anchorCellsByIndex = districts.map((d) => cellKey(...worldToCell(d.x, d.y)))
-  const byCompoundCountDesc = districts.map((_, i) => i).sort((a, b) => compoundCounts[b] - compoundCounts[a] || a - b)
+  const layoutOrder = districts.map((_, i) => i)
   const territoryByIndex: [number, number][][] = districts.map(() => [])
   let occupied = new Set<string>()
   for (let j = 0; j < districts.length; j++) occupied.add(anchorCellsByIndex[j])
@@ -87,20 +94,26 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
   const compoundLists: Compound[][] = districts.map(() => [])
   const blockLists: Block[][] = districts.map(() => [])
   const compoundDrawables: CompoundDrawable[][] = districts.map(() => [])
+  const nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][] = districts.map(() => [])
   const blockLaneCellsByDistrict: { cx: number; cy: number }[][] = districts.map(() => [])
   const allBlocked = new Set<string>()
 
-  for (const i of byCompoundCountDesc) {
+  for (const i of layoutOrder) {
     const blockSizes = blockSizesByDistrict[i]
+    const previewBlockSizes = previewBlockSizesByDistrict[i]
+    const plannedBlockCapacities = plannedBlockCapacitiesByDistrict[i]
     const seedKey = districts[i].language.seed_key
     const isPrimary = i === anchorIndex
     const [anchorCx, anchorCy] = worldToCell(districts[i].x, districts[i].y)
 
-    const placement = placeBlocks(occupied, blockCellsAll, blockSizes, anchorCx, anchorCy, seedKey)
-    console.log('[factory] blocks placed:', districts[i].language.language_name, 'requested=', blockSizes.length, 'placed=', placement.footprints.length, 'territory=', placement.territoryCells.length)
+    const placement = placeBlocks(occupied, blockCellsAll, plannedBlockCapacities, anchorCx, anchorCy, seedKey)
+    console.log('[factory] blocks placed:', districts[i].language.language_name, 'requested=', plannedBlockCapacities.length, 'placed=', placement.footprints.length, 'territory=', placement.territoryCells.length)
     territoryByIndex[i] = placement.territoryCells
     addCellsWithBuffer(placement.territoryCells, occupied)
-    for (const k of getBlockCellsFromFootprints(placement.footprints)) blockCellsAll.add(k)
+    for (const k of getBlockCellsFromFootprints(placement.footprints)) {
+      blockCellsAll.add(k)
+      allBlocked.add(k)
+    }
 
     const compounds: Compound[] = []
     const blocks: Block[] = []
@@ -110,11 +123,22 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
 
     for (let bi = 0; bi < placement.footprints.length; bi++) {
       const fp = placement.footprints[bi]
-      const targetCount = blockSizes[bi] ?? 1
+      const targetCount = blockSizes[bi] ?? 0
+      const previewCount = previewBlockSizes[bi] ?? targetCount
       const blockCompounds = packCompoundsInBlock(fp, targetCount, seedKey, bi, isPrimary && bi === 0)
       assignSemanticsToBlockCompounds(blockCompounds, seedKey, districtTier, bi)
       compounds.push(...blockCompounds)
-      blocks.push({ compounds: blockCompounds })
+      if (blockCompounds.length > 0) {
+        blocks.push({ compounds: blockCompounds })
+      }
+
+      if (previewCount > targetCount) {
+        const previewCompounds = packCompoundsInBlock(fp, previewCount, seedKey, bi, isPrimary && bi === 0)
+        const nextCompound = previewCompounds[targetCount]
+        if (nextCompound) {
+          nextCompoundDrawables[i].push(compoundToWorld(nextCompound))
+        }
+      }
     }
 
     console.log('[factory] compounds packed:', districts[i].language.language_name, 'total=', compounds.length)
@@ -125,10 +149,6 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
       sectorTier: districtTier,
     })
     blockLaneCellsByDistrict[i] = placement.laneCells
-
-    for (const k of getCompoundOccupancy(compounds)) {
-      allBlocked.add(k)
-    }
   }
 
   // F. Path layer
@@ -157,6 +177,7 @@ export function buildFactoryRenderModel(factory: FactoryResponse): FactoryRender
     mapSize,
     districts,
     compoundDrawables,
+    nextCompoundDrawables,
     blockLists,
     paths: pathResult.paths,
     serviceLaneCells,

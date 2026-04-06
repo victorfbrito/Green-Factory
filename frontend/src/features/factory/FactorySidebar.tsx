@@ -2,6 +2,12 @@ import type { FactoryResponse, UpgradeDetail } from '../../types'
 
 interface FactorySidebarProps {
   factory: FactoryResponse
+  xpStepAmount: number
+  xpDelta: number
+  simulationTargetName: string | null
+  onXpStepAmountChange: (amount: number) => void
+  onAddXp: () => void
+  onRemoveXp: () => void
 }
 
 function UpgradeList({ details }: { details: UpgradeDetail[] }) {
@@ -20,7 +26,15 @@ function UpgradeList({ details }: { details: UpgradeDetail[] }) {
   )
 }
 
-export function FactorySidebar({ factory }: FactorySidebarProps) {
+export function FactorySidebar({
+  factory,
+  xpStepAmount,
+  xpDelta,
+  simulationTargetName,
+  onXpStepAmountChange,
+  onAddXp,
+  onRemoveXp,
+}: FactorySidebarProps) {
   const { user, factory_meta, languages } = factory
 
   return (
@@ -32,6 +46,27 @@ export function FactorySidebar({ factory }: FactorySidebarProps) {
         <span className="factory-sidebar__badge">Level {factory_meta.environment_level}</span>
         <span className="factory-sidebar__badge">Sustainability {factory_meta.sustainability_score}</span>
       </div>
+
+      {simulationTargetName && (
+        <section className="factory-sidebar__simulator">
+          <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem' }}>XP simulator</h3>
+          <p style={{ marginBottom: '0.5rem' }}>
+            Applies to <strong>{simulationTargetName}</strong> · current delta {xpDelta >= 0 ? '+' : ''}
+            {xpDelta.toLocaleString()} XP
+          </p>
+          <div className="factory-sidebar__simulator-controls">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={xpStepAmount}
+              onChange={(e) => onXpStepAmountChange(Math.max(1, Number(e.target.value) || 1))}
+            />
+            <button type="button" onClick={onAddXp}>Add</button>
+            <button type="button" onClick={onRemoveXp}>Remove</button>
+          </div>
+        </section>
+      )}
 
       {languages.length > 0 && (
         <section style={{ marginTop: '1rem' }}>

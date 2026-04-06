@@ -32,6 +32,13 @@ export function MapLegend({ districts }: MapLegendProps) {
         />
         <span className="factory-map__legend-label">Lane</span>
       </div>
+      <div className="factory-map__legend-item">
+        <span
+          className="factory-map__legend-swatch"
+          style={{ backgroundColor: 'rgba(255,255,255,0.12)', border: '1px dashed rgba(255,255,255,0.9)' }}
+        />
+        <span className="factory-map__legend-label">Next compound</span>
+      </div>
     </div>
   )
 }

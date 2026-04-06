@@ -18,6 +18,7 @@ const BLOCK_BORDER_COLOR = '#f97316'
 interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
   compoundDrawables: CompoundDrawable[][]
+  nextCompoundDrawables: { x: number; y: number; w: number; h: number }[][]
   blockLists: Block[][]
   paths: PathCell[][]
   serviceLaneCells: PathCell[]
@@ -29,6 +30,7 @@ interface ThreeWorldLayerProps {
 export function ThreeWorldLayer({
   districts,
   compoundDrawables,
+  nextCompoundDrawables,
   blockLists,
   paths,
   serviceLaneCells,
@@ -160,6 +162,27 @@ export function ThreeWorldLayer({
 
     compoundDrawables.forEach((drawables, i) => {
       drawables.forEach((d) => addCompound(d, i))
+    })
+
+    nextCompoundDrawables.forEach((drawables, i) => {
+      const languageCode = districts[i]?.language?.language_code
+      const primaryHex = getLanguageTheme(languageCode).palette.primary
+      drawables.forEach((drawable) => {
+        const geometry = new THREE.PlaneGeometry(drawable.w, drawable.h)
+        const material = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(primaryHex),
+          transparent: true,
+          opacity: 0.28,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        })
+        const mesh = new THREE.Mesh(geometry, material)
+        const worldX = drawable.x + drawable.w / 2 - centerOffset
+        const worldZ = drawable.y + drawable.h / 2 - centerOffset
+        mesh.rotation.x = -Math.PI / 2
+        mesh.position.set(worldX, 0.14, worldZ)
+        scene.add(mesh)
+      })
     })
 
     if (viewMode === 'x-ray') {
@@ -489,7 +512,7 @@ export function ThreeWorldLayer({
         container.removeChild(renderer.domElement)
       }
     }
-  }, [districts, compoundDrawables, blockLists, paths, serviceLaneCells, topDownView, viewMode])
+  }, [districts, compoundDrawables, nextCompoundDrawables, blockLists, paths, serviceLaneCells, topDownView, viewMode])
 
   return (
     <div className="factory-map__three-wrapper">

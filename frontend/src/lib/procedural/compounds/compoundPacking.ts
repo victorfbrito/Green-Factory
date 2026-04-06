@@ -55,6 +55,8 @@ export function packCompoundsInBlock(
   blockIndex: number,
   isPrimary: boolean
 ): Compound[] {
+  if (targetCount <= 0) return []
+
   const available = getFootprintCells(footprint)
   const capacity = Math.max(1, Math.floor(available.size / 3))
   const maxCompounds = Math.min(targetCount, capacity)

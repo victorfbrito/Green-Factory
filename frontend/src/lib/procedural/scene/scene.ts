@@ -24,11 +24,10 @@ function getThemeFromLabel(label: string): WorldThemeId {
   }
 }
 
-function orderLanguagesBySize(languages: FactoryLanguage[]): FactoryLanguage[] {
+function orderLanguagesForLayout(languages: FactoryLanguage[]): FactoryLanguage[] {
   return [...languages].sort((a, b) => {
-    if (b.compound_count !== a.compound_count) return b.compound_count - a.compound_count
-    if (Math.abs(b.xp_share - a.xp_share) > 1e-9) return b.xp_share - a.xp_share
-    return a.sort_order - b.sort_order
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+    return a.seed_key.localeCompare(b.seed_key)
   })
 }
 
@@ -50,7 +49,7 @@ export function buildSceneLayout(factory: FactoryResponse): SceneLayout {
     }
   }
 
-  const ordered = orderLanguagesBySize(languages)
+  const ordered = orderLanguagesForLayout(languages)
   const anchorIndex = languages.indexOf(ordered[0])
   const anchor = ordered[0]
   const anchorRadius = seededRadius(anchor.seed_key, anchor.compound_count, anchor.xp_share)
