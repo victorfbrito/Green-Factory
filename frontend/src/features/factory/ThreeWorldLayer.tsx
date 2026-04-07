@@ -21,12 +21,16 @@ const ROAD_DIRS: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]]
 
 interface CarSpriteState {
   mesh: THREE.Mesh
+  label: THREE.Sprite
+  carId: 'A' | 'B'
   currentKey: string
   previousKey: string | null
   nextKey: string
   progress: number
   speedCellsPerSecond: number
   stepCount: number
+  laneIndex: 0 | 1
+  laneOffset: THREE.Vector3
 }
 
 function hashString(input: string): number {
@@ -110,6 +114,61 @@ function getRoadAxis(currentKey: string, nextKey: string): 'x' | 'z' {
   return currentX !== nextX ? 'x' : currentY !== nextY ? 'z' : 'x'
 }
 
+function getLaneOffset(currentKey: string, nextKey: string, laneDepth: number): THREE.Vector3 {
+  const [currentX, currentY] = parseCellKey(currentKey)
+  const [nextX, nextY] = parseCellKey(nextKey)
+  const dx = Math.sign(nextX - currentX)
+  const dz = Math.sign(nextY - currentY)
+  return new THREE.Vector3(-dz * laneDepth, 0, dx * laneDepth)
+}
+
+function shouldUseOffsetLane(carId: 'A' | 'B', currentKey: string, nextKey: string): boolean {
+  const [currentX, currentY] = parseCellKey(currentKey)
+  const [nextX, nextY] = parseCellKey(nextKey)
+  const dx = Math.sign(nextX - currentX)
+  const dz = Math.sign(nextY - currentY)
+  const positiveFlow = dx > 0 || dz < 0
+  return carId === 'A' ? positiveFlow : !positiveFlow
+}
+
+function getCarPlacementAdjustment(carId: 'A' | 'B', laneDepth: number): THREE.Vector3 {
+  if (carId !== 'B') return new THREE.Vector3(0, 0, 0)
+  return new THREE.Vector3(laneDepth, 0, laneDepth)
+}
+
+function createCarLabelSprite(text: string): THREE.Sprite {
+  const canvas = document.createElement('canvas')
+  canvas.width = 96
+  canvas.height = 96
+  const context = canvas.getContext('2d')
+  if (!context) {
+    throw new Error('Unable to create 2D context for car label')
+  }
+
+  context.clearRect(0, 0, canvas.width, canvas.height)
+  context.fillStyle = 'rgba(0, 0, 0, 0.75)'
+  context.beginPath()
+  context.arc(48, 48, 26, 0, Math.PI * 2)
+  context.fill()
+
+  context.fillStyle = '#ffffff'
+  context.font = 'bold 36px system-ui, sans-serif'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(text, 48, 50)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  })
+  const sprite = new THREE.Sprite(material)
+  sprite.scale.set(CELL_SIZE * 1.1, CELL_SIZE * 1.1, 1)
+  return sprite
+}
+
 interface ThreeWorldLayerProps {
   districts: DistrictPlacement[]
   compoundDrawables: CompoundDrawable[][]
@@ -121,6 +180,7 @@ interface ThreeWorldLayerProps {
   /** live = SVG ground tiles for roads/lanes; x-ray = solid debug tiles (previous behavior). */
   viewMode: FactoryViewMode
   topDownView: boolean
+  showVehicleTags: boolean
 }
 
 export function ThreeWorldLayer({
@@ -133,6 +193,7 @@ export function ThreeWorldLayer({
   serviceLaneCells,
   viewMode,
   topDownView,
+  showVehicleTags,
 }: ThreeWorldLayerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const cameraTargetRef = useRef(new THREE.Vector3(0, 0, 0))
@@ -441,29 +502,66 @@ export function ThreeWorldLayer({
         depthWrite: false,
       })
 
-      const maxCars = Math.min(6, components.length)
+      const component = components[0]!
+      const maxCars = 2
       const carStates: CarSpriteState[] = []
 
+      const startKey = component[hashString(`car:start:${component[0]}`) % component.length]!
+      const nextKey = chooseNextRoadNeighbor(startKey, null, roadSet, `car:next:0:${startKey}`)
+      const oppositeStartKey = nextKey
+      const oppositeNextKey = startKey
+      const laneDepth = carSize * 0.25
+      const carConfigs = [
+        {
+          carId: 'A' as const,
+          labelText: 'A',
+          currentKey: startKey,
+          previousKey: null,
+          nextKey,
+          progress: (hashString(`car:offset:forward:${startKey}`) % 1000) / 1000,
+          speedCellsPerSecond: 1.15 + (hashString(`car:speed:forward:${startKey}`) % 60) / 100,
+          stepCount: 0,
+          laneIndex: 0 as const,
+          laneOffset: new THREE.Vector3(0, 0, 0),
+        },
+        {
+          carId: 'B' as const,
+          labelText: 'B',
+          currentKey: oppositeStartKey,
+          previousKey: null,
+          nextKey: oppositeNextKey,
+          progress: (hashString(`car:offset:reverse:${oppositeStartKey}`) % 1000) / 1000,
+          speedCellsPerSecond: 1.15 + (hashString(`car:speed:reverse:${oppositeStartKey}`) % 60) / 100,
+          stepCount: 0,
+          laneIndex: 1 as const,
+          laneOffset: getLaneOffset(oppositeStartKey, oppositeNextKey, laneDepth),
+        },
+      ] as const
+
       for (let index = 0; index < maxCars; index++) {
-        const component = components[index]!
-        const startKey = component[hashString(`car:start:${index}:${component[0]}`) % component.length]!
-        const nextKey = chooseNextRoadNeighbor(startKey, null, roadSet, `car:next:${index}:0:${startKey}`)
-        const initialAxis = getRoadAxis(startKey, nextKey)
+        const config = carConfigs[index]!
+        const initialAxis = getRoadAxis(config.currentKey, config.nextKey)
         const mesh = new THREE.Mesh(
           carGeometry,
           initialAxis === 'x' ? carLeftMaterial : carRightMaterial
         )
         mesh.rotation.y = Math.PI / 4
         scene.add(mesh)
+        const label = createCarLabelSprite(config.labelText)
+        scene.add(label)
 
         carStates.push({
           mesh,
-          currentKey: startKey,
-          previousKey: null,
-          nextKey,
-          progress: (hashString(`car:offset:${index}:${startKey}`) % 1000) / 1000,
-          speedCellsPerSecond: 1.15 + (hashString(`car:speed:${index}:${startKey}`) % 60) / 100,
-          stepCount: 0,
+          label,
+          carId: config.carId,
+          currentKey: config.currentKey,
+          previousKey: config.previousKey,
+          nextKey: config.nextKey,
+          progress: config.progress,
+          speedCellsPerSecond: config.speedCellsPerSecond,
+          stepCount: config.stepCount,
+          laneIndex: config.laneIndex,
+          laneOffset: config.laneOffset.clone(),
         })
       }
 
@@ -491,10 +589,19 @@ export function ThreeWorldLayer({
           fromPosition.copy(getRoadWorldPosition(car.currentKey, centerOffset))
           toPosition.copy(getRoadWorldPosition(car.nextKey, centerOffset))
           currentPosition.lerpVectors(fromPosition, toPosition, car.progress)
+          if (shouldUseOffsetLane(car.carId, car.currentKey, car.nextKey)) {
+            car.laneOffset.copy(getLaneOffset(car.currentKey, car.nextKey, laneDepth))
+          } else {
+            car.laneOffset.set(0, 0, 0)
+          }
           car.mesh.material = getRoadAxis(car.currentKey, car.nextKey) === 'x'
             ? carLeftMaterial
             : carRightMaterial
+          currentPosition.add(car.laneOffset)
+          currentPosition.add(getCarPlacementAdjustment(car.carId, laneDepth))
           car.mesh.position.set(currentPosition.x, carHeight / 2 + 0.03, currentPosition.z)
+          car.label.visible = showVehicleTags
+          car.label.position.set(currentPosition.x, carHeight + CELL_SIZE * 0.7, currentPosition.z)
         }
       }
 
@@ -515,6 +622,8 @@ export function ThreeWorldLayer({
         window.cancelAnimationFrame(animationFrameId)
         for (const car of carStates) {
           scene.remove(car.mesh)
+          scene.remove(car.label)
+          car.label.material.dispose()
         }
         carGeometry.dispose()
         carLeftMaterial.dispose()
@@ -788,7 +897,7 @@ export function ThreeWorldLayer({
         container.removeChild(renderer.domElement)
       }
     }
-  }, [districts, compoundDrawables, nextCompoundDrawables, treeCells, blockLists, paths, serviceLaneCells, topDownView, viewMode])
+  }, [districts, compoundDrawables, nextCompoundDrawables, treeCells, blockLists, paths, serviceLaneCells, topDownView, viewMode, showVehicleTags])
 
   return (
     <div className="factory-map__three-wrapper">
